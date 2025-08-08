@@ -6,8 +6,8 @@ use std::time::Duration;
 mod game;
 use game::TetrisGame;
 
-mod ma72xx;
-use ma72xx::Max72xx;
+mod display;
+use display::Max72xx;
 
 fn setup() -> anyhow::Result<(Max72xx<impl SpiDevice<Error = spi::SpiError>>, ())> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -41,25 +41,13 @@ fn setup() -> anyhow::Result<(Max72xx<impl SpiDevice<Error = spi::SpiError>>, ()
 }
 
 fn main() -> anyhow::Result<()> {
-    let (mut max, _) = setup()?;
+    let (mut display, _) = setup()?;
+    let mut game = TetrisGame::new();
 
-    let mut i: usize = 0;
-    loop {
-        if i == 8 * 8 * 4 {
-            max.fill(false);
-            i = 0;
-        }
-        max.set_pixel((i % 8) as u8, (i / 8) as u8, true);
-        max.write_bitmap()?;
-        // std::thread::sleep(Duration::from_millis(10));
-        i += 1;
+    for i in 0.. {
+        game.step(i, &mut display);
+        display.transfer_bitmap()?;
     }
 
-    // let mut game = TetrisGame::new();
-
-    // for i in 0.. {
-    //     let display = game.step(i);
-    //     println!("{}", display);
-    //     std::thread::sleep(Duration::from_millis(500));
-    // }
+    Ok(())
 }

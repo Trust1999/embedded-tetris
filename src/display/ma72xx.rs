@@ -44,13 +44,13 @@ impl<E, SPI: SpiDevice<Error = E>> Max72xx<SPI> {
 
     pub fn reset(&mut self) -> Result<(), E> {
         // Make sure we are not in test mode
-        self.write_single_op(OP_DISPLAYTEST, 0x00)?;
+        self.transfer_single_op(OP_DISPLAYTEST, 0x00)?;
 
         // We need the multiplexer to scan all segments
-        self.write_single_op(OP_SCANLIMIT, 7)?;
+        self.transfer_single_op(OP_SCANLIMIT, 7)?;
 
         // We don't want the multiplexer to decode segments for us
-        self.write_single_op(OP_DECODEMODE, DecodeMode::DecodeNo as u8)?;
+        self.transfer_single_op(OP_DECODEMODE, DecodeMode::DecodeNo as u8)?;
 
         // Enable display
         self.set_shutdown(false)?;
@@ -61,12 +61,50 @@ impl<E, SPI: SpiDevice<Error = E>> Max72xx<SPI> {
         Ok(())
     }
 
-    pub fn fill(&mut self, value: bool) {
+    pub fn set_shutdown(&mut self, value: bool) -> Result<(), E> {
+        self.transfer_single_op(OP_SHUTDOWN, if value { 0x00 } else { 0x01 })
+    }
+
+    pub fn set_intensity(&mut self, intensity: u8) -> Result<(), E> {
+        self.transfer_single_op(OP_INTENSITY, intensity)
+    }
+
+    pub fn transfer_bitmap(&mut self) -> Result<(), E> {
+        for row in 0u8..8 {
+            self.transfer_row(row)?;
+        }
+        Ok(())
+    }
+
+    fn transfer_single_op(&mut self, opcode: u8, data: u8) -> Result<(), E> {
+        for _ in 0..self.displays {
+            self.spi.write(&[opcode, data])?;
+        }
+        Ok(())
+    }
+
+    fn transfer_row(&mut self, row: u8) -> Result<(), E> {
+        assert!(row < 8);
+
+        let opcode = OP_DIGIT0 + row;
+
+        let mut buffer = Vec::with_capacity(self.displays * 2);
+        for display in (0..self.displays).rev() {
+            let data = self.bitmap[display * 8 + row as usize];
+            buffer.extend_from_slice(&[opcode, data]);
+        }
+
+        self.spi.write(&buffer)
+    }
+}
+
+impl<SPI> super::Display for Max72xx<SPI> {
+    fn fill(&mut self, value: bool) {
         let line = if value { 0xff } else { 0x00 };
         self.bitmap.fill(line);
     }
 
-    pub fn set_pixel(&mut self, x: u8, y: u8, value: bool) {
+    fn set_pixel(&mut self, x: u8, y: u8, value: bool) {
         let width_per_display = 8u8;
         let height_per_display = 8u8;
         let total_height = self.displays * height_per_display as usize;
@@ -133,70 +171,6 @@ impl<E, SPI: SpiDevice<Error = E>> Max72xx<SPI> {
         } else {
             *line &= !mask;
         }
-    }
-
-    // pub fn set_pixel(&mut self, pos: Point2d, value: bool) {
-    //     assert!((pos.x as usize) < 8 && (pos.y as usize) < self.displays * 8);
-
-    //     fn transform(x: u8, y: u8) -> (u8, u8) {
-    //         let y_block_start = (y / 8) * 8;
-    //         let y_local = y - y_block_start;
-
-    //         let x_rot = y_local;
-    //         let y_rot = 7 - x;
-
-    //         let x_new = x_rot;
-    //         let y_new = y_block_start + y_rot;
-
-    //         (x_new, y_new)
-    //     }
-
-    //     let (x, y) = transform(pos.x, pos.y);
-
-    //     let line = &mut self.bitmap[y as usize];
-    //     let mask = 0b1000_0000 >> x;
-
-    //     if value {
-    //         *line |= mask;
-    //     } else {
-    //         *line &= !mask;
-    //     }
-    // }
-
-    pub fn set_shutdown(&mut self, value: bool) -> Result<(), E> {
-        self.write_single_op(OP_SHUTDOWN, if value { 0x00 } else { 0x01 })
-    }
-
-    pub fn set_intensity(&mut self, intensity: u8) -> Result<(), E> {
-        self.write_single_op(OP_INTENSITY, intensity)
-    }
-
-    pub fn write_bitmap(&mut self) -> Result<(), E> {
-        for row in 0u8..8 {
-            self.write_row(row)?;
-        }
-        Ok(())
-    }
-
-    fn write_single_op(&mut self, opcode: u8, data: u8) -> Result<(), E> {
-        for _ in 0..self.displays {
-            self.spi.write(&[opcode, data])?;
-        }
-        Ok(())
-    }
-
-    fn write_row(&mut self, row: u8) -> Result<(), E> {
-        assert!(row < 8);
-
-        let opcode = OP_DIGIT0 + row;
-
-        let mut buffer = Vec::with_capacity(self.displays * 2);
-        for display in (0..self.displays).rev() {
-            let data = self.bitmap[display * 8 + row as usize];
-            buffer.extend_from_slice(&[opcode, data]);
-        }
-
-        self.spi.write(&buffer)
     }
 }
 
