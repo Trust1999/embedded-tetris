@@ -1,3 +1,8 @@
+use std::time::Duration;
+
+mod game;
+use game::TetrisGame;
+
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_sys as _; // Bindings für ESP-IDF
@@ -24,5 +29,11 @@ fn main() {
     // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    log::info!("Hello, world!");
+    let mut game = TetrisGame::new();
+
+    for i in 0.. {
+        let display = game.step(i);
+        println!("{}", display);
+        std::thread::sleep(Duration::from_millis(500));
+    }
 }
