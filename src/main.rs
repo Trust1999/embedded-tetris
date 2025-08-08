@@ -24,7 +24,7 @@ fn setup_buttons(
     btn4: Gpio7,
     queue: Arc<Mutex<VecDeque<ButtonAction>>>,
 ) -> anyhow::Result<()> {
-    // Taster1
+    // Button1
     let mut button1 = PinDriver::input(btn1)?;
     button1.set_pull(Pull::Up)?;
     button1.set_interrupt_type(gpio::InterruptType::NegEdge)?;
@@ -35,7 +35,7 @@ fn setup_buttons(
         })
     }?;
 
-    // Taster2
+    // Button2
     let mut button2 = PinDriver::input(btn2)?;
     button2.set_pull(Pull::Up)?;
     button2.set_interrupt_type(gpio::InterruptType::NegEdge)?;
@@ -46,7 +46,7 @@ fn setup_buttons(
         })
     }?;
 
-    // Taster3
+    // Button3
     let mut button3 = PinDriver::input(btn3)?;
     button3.set_pull(Pull::Up)?;
     button3.set_interrupt_type(gpio::InterruptType::NegEdge)?;
@@ -57,7 +57,7 @@ fn setup_buttons(
         })
     }?;
 
-    // Taster4
+    // Button4
     let mut button4 = PinDriver::input(btn4)?;
     button4.set_pull(Pull::Up)?;
     button4.set_interrupt_type(gpio::InterruptType::NegEdge)?;
