@@ -6,17 +6,20 @@ use esp_idf_hal::peripherals::Peripherals;
 use once_cell::sync::Lazy;
 use heapless::spsc::Queue;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
+use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
+use esp_idf_sys as _;
 
 mod time;
 use time::Time;
 
 mod game;
-use game::{render, GameState, InGameState};
-use game::ButtonAction;
+use game::{render, GameState, InGameState, ButtonAction};
 
 mod display;
 use display::Max72xx;
 
+mod highscore;
+use highscore::{load_highscores,save_highscores, Highscores, NVS_NAMESPACE};
 
 //queue to save button inputs
 static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 100>>> = Lazy::new(|| Mutex::new(Queue::new()));
@@ -116,6 +119,8 @@ fn main() -> anyhow::Result<()> {
     button4.enable_interrupt().unwrap();
     *BUTTON4.lock().unwrap() = Some(button4);
 
+    let highscore = set_flash();
+
     let mut time = Time::setup(peripherals.timer00)?;
     time.start()?;
 
@@ -203,3 +208,22 @@ fn gipo_07() {
         }
     }
 }
+
+fn set_flash() -> Highscores{
+    //NVS initialization
+    let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
+    let mut nvs = EspNvs::new(partition, NVS_NAMESPACE, true).unwrap();
+
+    let highscores = match load_highscores(&mut nvs) {
+        Ok(scores) => {
+            log::info!("Highscores erfolgreich geladen: {:?}", scores.scores);
+            scores
+        }
+        Err(e) => {
+            log::warn!("Fehler beim Laden der Highscores, erstelle neue Liste: {}", e);
+            Highscores::new()
+        }
+    };
+    highscores
+}
+
