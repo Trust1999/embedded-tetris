@@ -1,32 +1,17 @@
-mod draw;
-pub use draw::{MatrixDisplay, Point2d};
+use crate::display::Display;
 
 mod piece;
 mod button_actions;
 pub use button_actions::ButtonAction;
 
-pub struct TetrisGame {
-    display: MatrixDisplay,
-}
+pub struct TetrisGame {}
 
 impl TetrisGame {
     pub fn new() -> Self {
-        Self {
-            display: MatrixDisplay::new(),
-        }
+        Self {}
     }
 
-    pub fn step(&mut self, i: usize) -> &MatrixDisplay {
-        if i % MatrixDisplay::HEIGHT as usize == 0 {
-            self.display.reset();
-        }
-
-        let pos = Point2d::new(
-            (i % MatrixDisplay::WIDTH as usize) as u8,
-            (i % MatrixDisplay::HEIGHT as usize) as u8,
-        );
-        self.display.set_pixel(pos, true);
-
-        &self.display
+    pub fn step(&mut self, i: usize, display: &mut impl Display) {
+        display.set_pixel((i % 8) as u8, (i / 8) as u8, true);
     }
 }
