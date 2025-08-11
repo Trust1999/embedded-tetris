@@ -1,40 +1,48 @@
-use std::time::{Duration, Instant};
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::gpio::{self, PinDriver, Pull};
-use std::sync::Mutex;
 use esp_idf_hal::peripherals::Peripherals;
-use once_cell::sync::Lazy;
-use heapless::spsc::Queue;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
 use esp_idf_sys as _;
+use heapless::spsc::Queue;
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 mod time;
 use time::Time;
 
 mod game;
-use game::{render, GameState, InGameState, ButtonAction};
+use game::{render, ButtonAction, GameState, InGameState};
 
 mod display;
 use display::Max72xx;
 
 mod highscore;
-use highscore::{load_highscores,save_highscores, Highscores, NVS_NAMESPACE};
+use highscore::{load_highscores, save_highscores, Highscores, NVS_NAMESPACE};
 
 //queue to save button inputs
 static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 100>>> = Lazy::new(|| Mutex::new(Queue::new()));
 
 //to save button
-static BUTTON1: Lazy<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> = Lazy::new(|| Mutex::new(None));
-static BUTTON2: Lazy<Mutex<Option<PinDriver<'static, Gpio5, Input>>>> = Lazy::new(|| Mutex::new(None));
-static BUTTON3: Lazy<Mutex<Option<PinDriver<'static, Gpio6, Input>>>> = Lazy::new(|| Mutex::new(None));
-static BUTTON4: Lazy<Mutex<Option<PinDriver<'static, Gpio7, Input>>>> = Lazy::new(|| Mutex::new(None));
+static BUTTON1: Lazy<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> =
+    Lazy::new(|| Mutex::new(None));
+static BUTTON2: Lazy<Mutex<Option<PinDriver<'static, Gpio5, Input>>>> =
+    Lazy::new(|| Mutex::new(None));
+static BUTTON3: Lazy<Mutex<Option<PinDriver<'static, Gpio6, Input>>>> =
+    Lazy::new(|| Mutex::new(None));
+static BUTTON4: Lazy<Mutex<Option<PinDriver<'static, Gpio7, Input>>>> =
+    Lazy::new(|| Mutex::new(None));
 
 // Debounce-time, initial to 1 second into the past
-static LAST_PRESS_1: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_2: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_3: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_4: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+static LAST_PRESS_1: Lazy<Mutex<Instant>> =
+    Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+static LAST_PRESS_2: Lazy<Mutex<Instant>> =
+    Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+static LAST_PRESS_3: Lazy<Mutex<Instant>> =
+    Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+static LAST_PRESS_4: Lazy<Mutex<Instant>> =
+    Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 
 const DISPLAY_WIDTH: usize = 8;
 const DISPLAY_HEIGHT: usize = 8 * 4;
@@ -72,10 +80,14 @@ fn main() -> anyhow::Result<()> {
     // Enable an internal pull-up resistor on GPIO4
     button1.set_pull(Pull::Up).unwrap();
     // Set the interrupt to trigger on a positive edge (low → high transition)
-    button1.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    button1
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_04` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button1.subscribe(gipo_04).unwrap(); }
+    unsafe {
+        button1.subscribe(gipo_04).unwrap();
+    }
     // Enable interrupts for this pin
     button1.enable_interrupt().unwrap();
     *BUTTON1.lock().unwrap() = Some(button1);
@@ -85,10 +97,14 @@ fn main() -> anyhow::Result<()> {
     // Enable an internal pull-up resistor on GPIO5
     button2.set_pull(Pull::Up).unwrap();
     // Set the interrupt to trigger on a positive edge (low → high transition)
-    button2.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    button2
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_05` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button2.subscribe(gipo_05).unwrap(); }
+    unsafe {
+        button2.subscribe(gipo_05).unwrap();
+    }
     // Enable interrupts for this pin
     button2.enable_interrupt().unwrap();
     *BUTTON2.lock().unwrap() = Some(button2);
@@ -98,10 +114,14 @@ fn main() -> anyhow::Result<()> {
     // Enable an internal pull-up resistor on GPIO6
     button3.set_pull(Pull::Up).unwrap();
     // Set the interrupt to trigger on a positive edge (low → high transition)
-    button3.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    button3
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_06` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button3.subscribe(gipo_06).unwrap(); }
+    unsafe {
+        button3.subscribe(gipo_06).unwrap();
+    }
     // Enable interrupts for this pin
     button3.enable_interrupt().unwrap();
     *BUTTON3.lock().unwrap() = Some(button3);
@@ -111,10 +131,14 @@ fn main() -> anyhow::Result<()> {
     // Enable an internal pull-up resistor on GPIO7
     button4.set_pull(Pull::Up).unwrap();
     // Set the interrupt to trigger on a positive edge (low → high transition)
-    button4.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    button4
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_07` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button4.subscribe(gipo_07).unwrap(); }
+    unsafe {
+        button4.subscribe(gipo_07).unwrap();
+    }
     // Enable interrupts for this pin
     button4.enable_interrupt().unwrap();
     *BUTTON4.lock().unwrap() = Some(button4);
@@ -233,4 +257,3 @@ fn set_flash() -> EspNvs<NvsDefault> {
     let mut nvs = EspNvs::new(partition, NVS_NAMESPACE, true).unwrap();
     nvs
 }
-
