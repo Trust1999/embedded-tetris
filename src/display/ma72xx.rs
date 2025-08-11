@@ -182,14 +182,3 @@ impl<SPI> std::fmt::Display for Max72xx<SPI> {
         Ok(())
     }
 }
-
-// let y_block_start = (0 / 8) * 8 = 0;
-// let y_local = 0 - y_block_start = 0;
-
-// let x_rot = y_local = 0;
-// let y_rot = 7 - 0 = 7;
-
-// let x_new = x_rot = 0;
-// let y_new = y_block_start + y_rot = 7;
-
-// (x_new, y_new) = (0,7)

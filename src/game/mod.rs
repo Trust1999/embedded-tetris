@@ -1,6 +1,8 @@
 use crate::display::Display;
 
 mod piece;
+mod button_actions;
+pub use button_actions::ButtonAction;
 
 pub struct TetrisGame {}
 
