@@ -3,7 +3,6 @@ use esp_idf_hal::gpio::{self, PinDriver, Pull};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
-use esp_idf_sys as _;
 use heapless::spsc::Queue;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
@@ -44,8 +43,8 @@ static LAST_PRESS_3: Lazy<Mutex<Instant>> =
 static LAST_PRESS_4: Lazy<Mutex<Instant>> =
     Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 
-const DISPLAY_WIDTH: usize = 8;
-const DISPLAY_HEIGHT: usize = 8 * 4;
+const DISPLAY_WIDTH: u8 = 8;
+const DISPLAY_HEIGHT: u8 = 8 * 4;
 
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -144,7 +143,7 @@ fn main() -> anyhow::Result<()> {
     *BUTTON4.lock().unwrap() = Some(button4);
 
     let mut nvs = set_flash();
-    let mut highscore = load_highscores(&mut nvs).unwrap();
+    let highscore = load_highscores(&mut nvs).unwrap();
 
     let mut time = Time::setup(peripherals.timer00)?;
     time.start()?;
@@ -152,20 +151,6 @@ fn main() -> anyhow::Result<()> {
     let mut game_state = GameState::InGame(InGameState::new());
 
     println!("{:?}", highscore);
-
-    loop {
-        let action_opt = {
-            let mut queue = ACTION_QUEUE.lock().unwrap();
-            queue.dequeue()
-        };
-
-        if let Some(action) = action_opt {
-            highscore.add_score(1);
-            save_highscores(&mut nvs, &highscore.clone());
-        }
-
-        std::thread::sleep(Duration::from_millis(10));
-    }
 
     loop {
         time.update()?;
