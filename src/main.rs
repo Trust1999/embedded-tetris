@@ -11,7 +11,7 @@ mod time;
 use time::Time;
 
 mod game;
-use game::TetrisGame;
+use game::{render, GameState, InGameState};
 use game::ButtonAction;
 
 mod display;
@@ -32,6 +32,9 @@ static LAST_PRESS_1: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now
 static LAST_PRESS_2: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 static LAST_PRESS_3: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 static LAST_PRESS_4: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+
+const DISPLAY_WIDTH: usize = 8;
+const DISPLAY_HEIGHT: usize = 8 * 4;
 
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -116,12 +119,13 @@ fn main() -> anyhow::Result<()> {
     let mut time = Time::setup(peripherals.timer00)?;
     time.start()?;
 
-    let mut game = TetrisGame::new();
-
-    for i in 0.. {
+    let mut game_state = GameState::InGame(InGameState::new());
+    loop {
         time.update()?;
 
-        game.step(i, &mut display);
+        game_state = game_state.update(&time);
+
+        render(&game_state, &mut display);
 
         display.transfer_bitmap()?;
     }

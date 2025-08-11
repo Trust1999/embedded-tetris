@@ -1,22 +1,21 @@
 use std::fmt::Write;
 
+use crate::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
+
 pub struct TextDisplay {
-    pub data: [u8; Self::HEIGHT as usize],
+    pub data: [u8; DISPLAY_HEIGHT],
 }
 
 impl TextDisplay {
-    pub const HEIGHT: u8 = 8 * 4;
-    pub const WIDTH: u8 = 8;
-
     pub fn new() -> Self {
         Self {
-            data: [0; Self::HEIGHT as usize],
+            data: [0; DISPLAY_HEIGHT],
         }
     }
 
     /// Resets all pixels to 0
     pub fn reset(&mut self) {
-        self.data = [0; Self::HEIGHT as usize]
+        self.data = [0; DISPLAY_HEIGHT]
     }
 
     pub fn get_pixel(&self, x: u8, y: u8) -> bool {
@@ -28,14 +27,14 @@ impl TextDisplay {
     }
 
     fn has_position(x: u8, y: u8) -> bool {
-        x < Self::WIDTH && y < Self::HEIGHT
+        (x as usize) < DISPLAY_WIDTH && (y as usize) < DISPLAY_HEIGHT
     }
 }
 
 impl std::fmt::Display for TextDisplay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for y in 0..(Self::HEIGHT as u8) {
-            for x in 0..(Self::WIDTH as u8) {
+        for y in 0..(DISPLAY_HEIGHT as u8) {
+            for x in 0..(DISPLAY_WIDTH as u8) {
                 let value = self.get_pixel(x, y);
                 f.write_char(if value { '●' } else { '◌' })?;
                 f.write_char(' ')?;
@@ -62,5 +61,9 @@ impl super::Display for TextDisplay {
         } else {
             *line &= !mask;
         }
+    }
+
+    fn set_bitmap(&mut self, bitmap: &[u8]) {
+        self.data.copy_from_slice(bitmap);
     }
 }

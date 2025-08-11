@@ -172,6 +172,10 @@ impl<SPI> super::Display for Max72xx<SPI> {
             *line &= !mask;
         }
     }
+
+    fn set_bitmap(&mut self, bitmap: &[u8]) {
+        self.bitmap.copy_from_slice(bitmap);
+    }
 }
 
 impl<SPI> std::fmt::Display for Max72xx<SPI> {
