@@ -1,14 +1,16 @@
+use embedded_hal::spi::SpiDevice;
+use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_hal::spi;
 use std::time::{Duration, Instant};
-
-mod game;
-use game::TetrisGame;
-
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::gpio::{self, PinDriver, Pull};
 use std::sync::Mutex;
 use esp_idf_hal::peripherals::Peripherals;
 use once_cell::sync::Lazy;
 use heapless::spsc::Queue;
+
+mod game;
+use game::TetrisGame;
 
 static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 100>>> = Lazy::new(|| Mutex::new(Queue::new()));
 static BUTTON1: Lazy<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> = Lazy::new(|| Mutex::new(None));
@@ -30,10 +32,38 @@ enum ButtonAction {
     Rotate,
 }
 
-fn main() {
+fn setup() -> anyhow::Result<(Max72xx<impl SpiDevice<Error = spi::SpiError>>, ())> {
+    // It is necessary to call this function once. Otherwise some patches to the runtime
+    // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_svc::sys::link_patches();
+
+    // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
 
+    let peripherals = Peripherals::take().unwrap();
+
+    // Initialize SPI2
+    let spi_driver = spi::SpiDriver::new(
+        peripherals.spi2,
+        peripherals.pins.gpio12,       // SCLK (FSPICLK)
+        peripherals.pins.gpio11,       // MOSI (FSPID)
+        Some(peripherals.pins.gpio13), // MISO (FSPIQ), not used
+        &Default::default(),
+    )?;
+
+    // Chip Select pin for the cascaded MAX72xx devices
+    let cs_pin = peripherals.pins.gpio10;
+    let spi = spi::SpiDeviceDriver::new(spi_driver, Some(cs_pin), &Default::default())?;
+
+    let mut max = Max72xx::new(spi, 4);
+    max.reset()?;
+
+    std::thread::sleep(Duration::from_millis(100));
+
+    Ok((max, ()))
+}
+
+fn main() -> anyhow::Result<()> {
     let peripherals = Peripherals::take().unwrap();
     let pins = peripherals.pins;
 
@@ -65,6 +95,7 @@ fn main() {
     button4.enable_interrupt().unwrap();
     *BUTTON4.lock().unwrap() = Some(button4);
 
+    let (mut display, _) = setup()?;
     let mut game = TetrisGame::new();
 
     loop {
@@ -81,33 +112,12 @@ fn main() {
         std::thread::sleep(Duration::from_millis(10));
     }
 
-    // Alternativ: Game-Loop, der nicht erreicht wird, da oben eine Endlosschleife ist
-    /*
     for i in 0.. {
-        let display = game.step(i);
-        println!("{}", display);
-        std::thread::sleep(Duration::from_millis(500));
-    }
-    */
-}
-
-// Debounce + Queue Push für Button 1 (MoveLeft)
-fn gipo_04() {
-    let now = Instant::now();
-    let mut last_press = LAST_PRESS_1.lock().unwrap();
-
-    if now.duration_since(*last_press) >= Duration::from_millis(100) {
-        if let Ok(mut queue) = ACTION_QUEUE.lock() {
-            let _ = queue.enqueue(ButtonAction::MoveLeft);
-        }
-        *last_press = now;
+        game.step(i, &mut display);
+        display.transfer_bitmap()?;
     }
 
-    if let Ok(mut maybe_button) = BUTTON1.lock() {
-        if let Some(button) = maybe_button.as_mut() {
-            let _ = button.enable_interrupt();
-        }
-    }
+    Ok(())
 }
 
 // Debounce + Queue Push für Button 2 (MoveRight)
@@ -120,7 +130,7 @@ fn gipo_05() {
             let _ = queue.enqueue(ButtonAction::MoveRight);
         }
         *last_press = now;
-        }
+    }
     if let Ok(mut maybe_button) = BUTTON2.lock() {
         if let Some(button) = maybe_button.as_mut() {
             let _ = button.enable_interrupt();
@@ -138,7 +148,7 @@ fn gipo_06() {
             let _ = queue.enqueue(ButtonAction::MoveDown);
         }
         *last_press = now;
-        }
+    }
     if let Ok(mut maybe_button) = BUTTON3.lock() {
         if let Some(button) = maybe_button.as_mut() {
             let _ = button.enable_interrupt();
@@ -156,10 +166,11 @@ fn gipo_07() {
             let _ = queue.enqueue(ButtonAction::Rotate);
         }
         *last_press = now;
-        }
+    }
     if let Ok(mut maybe_button) = BUTTON4.lock() {
         if let Some(button) = maybe_button.as_mut() {
             let _ = button.enable_interrupt();
         }
     }
 }
+
