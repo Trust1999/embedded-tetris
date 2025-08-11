@@ -17,6 +17,7 @@ use game::ButtonAction;
 mod display;
 use display::Max72xx;
 
+
 //queue to save button inputs
 static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 100>>> = Lazy::new(|| Mutex::new(Queue::new()));
 
@@ -117,20 +118,6 @@ fn main() -> anyhow::Result<()> {
 
     let mut game = TetrisGame::new();
 
-    loop {
-        let action_opt = {
-            let mut queue = ACTION_QUEUE.lock().unwrap();
-            queue.dequeue()
-        };
-
-        if let Some(action) = action_opt {
-            println!("Button gedrückt: {:?}", action);
-            std::thread::sleep(Duration::from_millis(500));
-        }
-
-        std::thread::sleep(Duration::from_millis(10));
-    }
-
     for i in 0.. {
         time.update()?;
 
@@ -184,7 +171,7 @@ fn gipo_06() {
     let now = Instant::now();
     let mut last_press = LAST_PRESS_3.lock().unwrap();
 
-    if now.duration_since(*last_press) >= Duration::from_millis(100) {
+    if now.duration_since(*last_press) >= Duration::from_millis(200) {
         if let Ok(mut queue) = ACTION_QUEUE.lock() {
             let _ = queue.enqueue(ButtonAction::MoveDown);
         }
