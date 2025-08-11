@@ -129,8 +129,6 @@ fn main() -> anyhow::Result<()> {
 
         display.transfer_bitmap()?;
     }
-
-    Ok(())
 }
 
 // Debounce + Queue Push for Button 1 (MoveLeft)
