@@ -1,4 +1,4 @@
-use crate::{display::Display, game::piece::Piece, time::Time, DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use crate::{DISPLAY_HEIGHT, DISPLAY_WIDTH, display::Display, game::piece::Piece, time::Time};
 
 mod piece;
 
@@ -36,10 +36,19 @@ impl GameState {
     }
 
     fn update_in_game(mut state: InGameState, time: &Time) -> Self {
-        if (time.now_ms() - state.time_last_move) >= 1000 {
+        if (time.now_ms() - state.time_last_move) >= 250 {
             state.time_last_move = time.now_ms();
             state.current_piece.move_by(0, 1);
         }
+
+        if state.next_piece.is_none() && state.current_piece.position_y > 8 {
+            state.next_piece = Some(Piece::random());
+        }
+
+        if state.next_piece.is_some() && state.current_piece.position_y >= DISPLAY_HEIGHT as i16 {
+            state.current_piece = state.next_piece.take().unwrap();
+        }
+
         Self::InGame(state)
     }
 }
