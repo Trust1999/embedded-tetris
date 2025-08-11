@@ -3,11 +3,10 @@ use esp_idf_hal::gpio::*;
 use esp_idf_hal::gpio::{self, PinDriver, Pull};
 use std::sync::Mutex;
 use esp_idf_hal::peripherals::Peripherals;
-use once_cell::sync::Lazy;
 use heapless::spsc::Queue;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
-use esp_idf_sys as _;
+use std::sync::LazyLock;
 
 mod time;
 use time::Time;
@@ -19,22 +18,24 @@ mod display;
 use display::Max72xx;
 
 mod highscore;
+mod website;
+
 use highscore::{load_highscores,save_highscores, Highscores, NVS_NAMESPACE};
 
 //queue to save button inputs
-static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 100>>> = Lazy::new(|| Mutex::new(Queue::new()));
+static ACTION_QUEUE: LazyLock<Mutex<Queue<ButtonAction, 100>>> = LazyLock::new(|| Mutex::new(Queue::new()));
 
 //to save button
-static BUTTON1: Lazy<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> = Lazy::new(|| Mutex::new(None));
-static BUTTON2: Lazy<Mutex<Option<PinDriver<'static, Gpio5, Input>>>> = Lazy::new(|| Mutex::new(None));
-static BUTTON3: Lazy<Mutex<Option<PinDriver<'static, Gpio6, Input>>>> = Lazy::new(|| Mutex::new(None));
-static BUTTON4: Lazy<Mutex<Option<PinDriver<'static, Gpio7, Input>>>> = Lazy::new(|| Mutex::new(None));
+static BUTTON1: LazyLock<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> = LazyLock::new(|| Mutex::new(None));
+static BUTTON2: LazyLock<Mutex<Option<PinDriver<'static, Gpio5, Input>>>> = LazyLock::new(|| Mutex::new(None));
+static BUTTON3: LazyLock<Mutex<Option<PinDriver<'static, Gpio6, Input>>>> = LazyLock::new(|| Mutex::new(None));
+static BUTTON4: LazyLock<Mutex<Option<PinDriver<'static, Gpio7, Input>>>> = LazyLock::new(|| Mutex::new(None));
 
 // Debounce-time, initial to 1 second into the past
-static LAST_PRESS_1: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_2: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_3: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_4: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+static LAST_PRESS_1: LazyLock<Mutex<Instant>> = LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+static LAST_PRESS_2: LazyLock<Mutex<Instant>> = LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+static LAST_PRESS_3: LazyLock<Mutex<Instant>> = LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+static LAST_PRESS_4: LazyLock<Mutex<Instant>> = LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 
 const DISPLAY_WIDTH: usize = 8;
 const DISPLAY_HEIGHT: usize = 8 * 4;
@@ -127,22 +128,6 @@ fn main() -> anyhow::Result<()> {
 
     let mut game_state = GameState::InGame(InGameState::new());
 
-    println!("{:?}", highscore);
-
-    loop {
-        let action_opt = {
-            let mut queue = ACTION_QUEUE.lock().unwrap();
-            queue.dequeue()
-        };
-
-        if let Some(action) = action_opt {
-            highscore.add_score(1);
-            save_highscores(&mut nvs, &highscore.clone());
-        }
-
-        std::thread::sleep(Duration::from_millis(10));
-    }
-
     loop {
         time.update()?;
 
@@ -230,7 +215,6 @@ fn gipo_07() {
 fn set_flash() -> EspNvs<NvsDefault> {
     //NVS initialization
     let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
-    let mut nvs = EspNvs::new(partition, NVS_NAMESPACE, true).unwrap();
-    nvs
+    EspNvs::new(partition, NVS_NAMESPACE, true).unwrap()
 }
 
