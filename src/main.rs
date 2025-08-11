@@ -14,20 +14,23 @@ mod game;
 use game::TetrisGame;
 use game::ButtonAction;
 
+mod display;
+use display::Max72xx;
+
+//queue to save button inputs
 static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 100>>> = Lazy::new(|| Mutex::new(Queue::new()));
+
+//to save button
 static BUTTON1: Lazy<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> = Lazy::new(|| Mutex::new(None));
 static BUTTON2: Lazy<Mutex<Option<PinDriver<'static, Gpio5, Input>>>> = Lazy::new(|| Mutex::new(None));
 static BUTTON3: Lazy<Mutex<Option<PinDriver<'static, Gpio6, Input>>>> = Lazy::new(|| Mutex::new(None));
 static BUTTON4: Lazy<Mutex<Option<PinDriver<'static, Gpio7, Input>>>> = Lazy::new(|| Mutex::new(None));
 
-// Debounce-Zeitpunkte, initial auf 1 Sekunde in der Vergangenheit gesetzt
+// Debounce-time, initial to 1 second into the past
 static LAST_PRESS_1: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 static LAST_PRESS_2: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 static LAST_PRESS_3: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 static LAST_PRESS_4: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-
-mod display;
-use display::Max72xx;
 
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -57,37 +60,57 @@ fn main() -> anyhow::Result<()> {
     };
     display.reset()?;
 
-    let pins = peripherals.pins;
-
-    let mut button1 = PinDriver::input(pins.gpio4).unwrap();
+    // Create a new PinDriver for GPIO4 configured as an input pin
+    let mut button1 = PinDriver::input(peripherals.pins.gpio4).unwrap();
+    // Enable an internal pull-up resistor on GPIO4
     button1.set_pull(Pull::Up).unwrap();
+    // Set the interrupt to trigger on a positive edge (low → high transition)
     button1.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    // Subscribe the GPIO4 interrupt to call the function `gipo_04` when triggered
+    // `unsafe` is needed because we are passing a raw function pointer
     unsafe { button1.subscribe(gipo_04).unwrap(); }
+    // Enable interrupts for this pin
     button1.enable_interrupt().unwrap();
     *BUTTON1.lock().unwrap() = Some(button1);
 
-    let mut button2 = PinDriver::input(pins.gpio5).unwrap();
+    // Create a new PinDriver for GPIO5 configured as an input pin
+    let mut button2 = PinDriver::input(peripherals.pins.gpio5).unwrap();
+    // Enable an internal pull-up resistor on GPIO5
     button2.set_pull(Pull::Up).unwrap();
+    // Set the interrupt to trigger on a positive edge (low → high transition)
     button2.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    // Subscribe the GPIO4 interrupt to call the function `gipo_05` when triggered
+    // `unsafe` is needed because we are passing a raw function pointer
     unsafe { button2.subscribe(gipo_05).unwrap(); }
+    // Enable interrupts for this pin
     button2.enable_interrupt().unwrap();
     *BUTTON2.lock().unwrap() = Some(button2);
 
-    let mut button3 = PinDriver::input(pins.gpio6).unwrap();
+    // Create a new PinDriver for GPIO6 configured as an input pin
+    let mut button3 = PinDriver::input(peripherals.pins.gpio6).unwrap();
+    // Enable an internal pull-up resistor on GPIO6
     button3.set_pull(Pull::Up).unwrap();
+    // Set the interrupt to trigger on a positive edge (low → high transition)
     button3.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    // Subscribe the GPIO4 interrupt to call the function `gipo_06` when triggered
+    // `unsafe` is needed because we are passing a raw function pointer
     unsafe { button3.subscribe(gipo_06).unwrap(); }
+    // Enable interrupts for this pin
     button3.enable_interrupt().unwrap();
     *BUTTON3.lock().unwrap() = Some(button3);
 
-    let mut button4 = PinDriver::input(pins.gpio7).unwrap();
+    // Create a new PinDriver for GPIO7 configured as an input pin
+    let mut button4 = PinDriver::input(peripherals.pins.gpio7).unwrap();
+    // Enable an internal pull-up resistor on GPIO7
     button4.set_pull(Pull::Up).unwrap();
+    // Set the interrupt to trigger on a positive edge (low → high transition)
     button4.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    // Subscribe the GPIO4 interrupt to call the function `gipo_07` when triggered
+    // `unsafe` is needed because we are passing a raw function pointer
     unsafe { button4.subscribe(gipo_07).unwrap(); }
+    // Enable interrupts for this pin
     button4.enable_interrupt().unwrap();
     *BUTTON4.lock().unwrap() = Some(button4);
-
-
 
     let mut time = Time::setup(peripherals.timer00)?;
     time.start()?;
@@ -119,7 +142,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-// Debounce + Queue Push für Button 1 (MoveLeft)
+// Debounce + Queue Push for Button 1 (MoveLeft)
 fn gipo_04() {
     let now = Instant::now();
     let mut last_press = LAST_PRESS_1.lock().unwrap();
@@ -138,7 +161,7 @@ fn gipo_04() {
     }
 }
 
-// Debounce + Queue Push für Button 2 (MoveRight)
+// Debounce + Queue Push for Button 2 (MoveRight)
 fn gipo_05() {
     let now = Instant::now();
     let mut last_press = LAST_PRESS_2.lock().unwrap();
@@ -156,7 +179,7 @@ fn gipo_05() {
     }
 }
 
-// Debounce + Queue Push für Button 3 (MoveDown)
+// Debounce + Queue Push for Button 3 (MoveDown)
 fn gipo_06() {
     let now = Instant::now();
     let mut last_press = LAST_PRESS_3.lock().unwrap();
@@ -174,7 +197,7 @@ fn gipo_06() {
     }
 }
 
-// Debounce + Queue Push für Button 4 (Rotate)
+// Debounce + Queue Push for Button 4 (Rotate)
 fn gipo_07() {
     let now = Instant::now();
     let mut last_press = LAST_PRESS_4.lock().unwrap();

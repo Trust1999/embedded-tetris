@@ -26,10 +26,10 @@ log = "0.4"
 esp-idf-svc = "0.51"
 esp-idf-hal = "0.45.2"
 heapless ="0.8.0"
-esp-idf-hal = "0.45.2"
 esp-idf-sys = { version = "0.36.1", features = ["binstart"] }
 anyhow = "1.0.98"
 once_cell = "1.21.3"
+embedded-hal = "1.0.0"
 
 # --- Optional Embassy Integration ---
 # esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
