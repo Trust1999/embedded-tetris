@@ -119,12 +119,30 @@ fn main() -> anyhow::Result<()> {
     button4.enable_interrupt().unwrap();
     *BUTTON4.lock().unwrap() = Some(button4);
 
-    let highscore = set_flash();
+    let mut nvs = set_flash();
+    let mut highscore = load_highscores(&mut nvs).unwrap();
 
     let mut time = Time::setup(peripherals.timer00)?;
     time.start()?;
 
     let mut game_state = GameState::InGame(InGameState::new());
+
+    println!("{:?}", highscore);
+
+    loop {
+        let action_opt = {
+            let mut queue = ACTION_QUEUE.lock().unwrap();
+            queue.dequeue()
+        };
+
+        if let Some(action) = action_opt {
+            highscore.add_score(1);
+            save_highscores(&mut nvs, &highscore.clone());
+        }
+
+        std::thread::sleep(Duration::from_millis(10));
+    }
+
     loop {
         time.update()?;
 
@@ -209,21 +227,10 @@ fn gipo_07() {
     }
 }
 
-fn set_flash() -> Highscores{
+fn set_flash() -> EspNvs<NvsDefault> {
     //NVS initialization
     let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
     let mut nvs = EspNvs::new(partition, NVS_NAMESPACE, true).unwrap();
-
-    let highscores = match load_highscores(&mut nvs) {
-        Ok(scores) => {
-            log::info!("Highscores erfolgreich geladen: {:?}", scores.scores);
-            scores
-        }
-        Err(e) => {
-            log::warn!("Fehler beim Laden der Highscores, erstelle neue Liste: {}", e);
-            Highscores::new()
-        }
-    };
-    highscores
+    nvs
 }
 

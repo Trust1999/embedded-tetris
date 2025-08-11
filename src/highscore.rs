@@ -34,7 +34,7 @@ pub fn save_highscores(nvs: &mut EspNvs<NvsDefault>, highscores: &Highscores) ->
 
 pub fn load_highscores(nvs: &mut EspNvs<NvsDefault>) -> Result<Highscores, anyhow::Error> {
     // Liest den JSON-String und versucht, ihn zu deserialisieren
-    if let Some(serialized_scores) = nvs.get_str(NVS_KEY, &mut [255])? {
+    if let Some(serialized_scores) =  nvs.get_str(NVS_KEY, &mut [0u8; 255])? {
         let highscores: Highscores = serde_json::from_str(&serialized_scores)?;
         Ok(highscores)
     } else {
