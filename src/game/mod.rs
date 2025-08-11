@@ -2,6 +2,8 @@ mod draw;
 pub use draw::{MatrixDisplay, Point2d};
 
 mod piece;
+mod button_actions;
+pub use button_actions::ButtonAction;
 
 pub struct TetrisGame {
     display: MatrixDisplay,

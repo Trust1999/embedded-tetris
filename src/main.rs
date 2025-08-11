@@ -1,14 +1,14 @@
 use std::time::{Duration, Instant};
-
-mod game;
-use game::TetrisGame;
-
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::gpio::{self, PinDriver, Pull};
 use std::sync::Mutex;
 use esp_idf_hal::peripherals::Peripherals;
 use once_cell::sync::Lazy;
 use heapless::spsc::Queue;
+
+mod game;
+use game::TetrisGame;
+use game::ButtonAction;
 
 static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 100>>> = Lazy::new(|| Mutex::new(Queue::new()));
 static BUTTON1: Lazy<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> = Lazy::new(|| Mutex::new(None));
@@ -21,14 +21,6 @@ static LAST_PRESS_1: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now
 static LAST_PRESS_2: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 static LAST_PRESS_3: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 static LAST_PRESS_4: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-
-#[derive(Debug, Clone, Copy)]
-enum ButtonAction {
-    MoveLeft,
-    MoveRight,
-    MoveDown,
-    Rotate,
-}
 
 fn main() {
     esp_idf_svc::sys::link_patches();
