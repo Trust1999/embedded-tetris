@@ -18,18 +18,41 @@ impl Piece {
         const BASE_VARIANTS: [Piece; 5] = [
             // ● ●
             // ● ●
-            Piece::new(&[true, true, true, true], 2, 2),
-            // ◌ ◌ ●
-            // ● ● ●
-            Piece::new(&[false, false, true, true, true, true], 3, 2),
-            // ◌ ● ◌
-            // ● ● ●
-            Piece::new(&[false, true, false, true, true, true], 3, 2),
-            // ◌ ● ●
-            // ● ● ◌
-            Piece::new(&[false, true, true, true, true, false], 3, 2),
+            Piece::new(
+                &[true, true, true, true],
+                (2, 2), // size
+                (3, 2), // position
+            ),
+            // ● ◌
+            // ● ◌
+            // ● ●
+            Piece::new(
+                &[true, false, true, false, true, true],
+                (2, 3), // size
+                (3, 2), // position
+            ),
+            // ● ◌
+            // ● ●
+            // ● ◌
+            Piece::new(
+                &[true, false, true, true, true, false],
+                (2, 3), // size
+                (3, 2), // position
+            ),
+            // ● ◌
+            // ● ●
+            // ◌ ●
+            Piece::new(
+                &[true, false, true, true, false, true],
+                (2, 3), // size
+                (3, 2), // position
+            ),
             // ● ● ● ●
-            Piece::new(&[true, true, true, true], 4, 1),
+            Piece::new(
+                &[true, true, true, true],
+                (4, 1), // size
+                (2, 3), // position
+            ),
         ];
 
         let mut rng = rand::rng();
@@ -44,11 +67,9 @@ impl Piece {
         }
 
         // Rotate by random amount
-        let rotation = match rng.random_range(0..3) {
+        let rotation = match rng.random_range(0..1) {
             0 => Rotation::Deg0,
-            1 => Rotation::Deg90,
-            2 => Rotation::Deg180,
-            _ => Rotation::Deg270,
+            _ => Rotation::Deg180,
         };
         piece.rotate(rotation);
 
@@ -79,13 +100,17 @@ impl Piece {
             .take(self.height as usize)
     }
 
-    const fn new<const SIZE: usize>(blocks: &[bool; SIZE], width: u8, height: u8) -> Self {
+    const fn new<const SIZE: usize>(
+        blocks: &[bool; SIZE],
+        (width, height): (u8, u8),
+        (position_x, position_y): (i16, i16),
+    ) -> Self {
         let mut _blocks = [false; MAX_SIZE];
         let (used_chunk, _) = _blocks.split_at_mut(SIZE);
         used_chunk.copy_from_slice(blocks);
         Self {
-            position_x: 0,
-            position_y: 0,
+            position_x,
+            position_y,
             blocks: _blocks,
             width,
             height,
