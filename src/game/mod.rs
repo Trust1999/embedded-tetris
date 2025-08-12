@@ -9,7 +9,7 @@ pub enum GameState {
 }
 
 pub struct InGameState {
-    blocks: [u8; DISPLAY_HEIGHT as usize],
+    blocks: Blocks,
     current_piece: Piece,
     next_piece: Option<Piece>,
     time_last_move: u64,
@@ -18,7 +18,9 @@ pub struct InGameState {
 impl InGameState {
     pub fn new() -> Self {
         Self {
-            blocks: [0; DISPLAY_HEIGHT as usize],
+            blocks: Blocks {
+                data: [0; DISPLAY_HEIGHT as usize],
+            },
             current_piece: Piece::random(),
             next_piece: None,
             time_last_move: 0,
@@ -47,42 +49,56 @@ impl GameState {
             state.next_piece = Some(Piece::random());
         }
 
-        // Check intersections
-        let will_intersect = Self::will_intersect(&state.current_piece, &state.blocks);
+        // Collissions with floor, walls and existing blocks
+        let will_intersect = state.blocks.intersects(&state.current_piece);
         if state.next_piece.is_some() && will_intersect {
+            // Place piece ontop of existing blocks
+            for (x, y) in state.current_piece.filled_positions() {
+                state.blocks.set(x, y);
+            }
             state.current_piece = state.next_piece.take().unwrap();
         }
 
-        let blocks_reached_top = !state.blocks[0..8].iter().all(|row| *row == 0x00);
+        // Check if game is over
+        let blocks_reached_top = !state.blocks.rows().take(8).all(|row| row == 0x00);
         if blocks_reached_top {
+            log::info!("Game over");
             return Self::GameOverMenu;
         }
 
         Self::InGame(state)
     }
+}
 
-    fn will_intersect(piece: &Piece, blocks: &[u8; DISPLAY_HEIGHT as usize]) -> bool {
-        let mut future_piece = piece.clone();
-        future_piece.move_by(0, 1);
+struct Blocks {
+    data: [u8; DISPLAY_HEIGHT as usize],
+}
 
-        let will_intersect_floor = (0..future_piece.width as i16).any(|x| {
-            future_piece.intersects_with(future_piece.position_x + x, DISPLAY_HEIGHT as i16)
-        });
-
-        let will_intersect_blocks = future_piece
-            .filled_positions()
-            .any(|(x, y)| Self::blocks_get(blocks, x, y));
-
-        will_intersect_floor || will_intersect_blocks
+impl Blocks {
+    fn intersects(&self, piece: &Piece) -> bool {
+        piece.filled_positions().any(|(x, y)| self.get(x, y))
     }
 
-    fn blocks_get(blocks: &[u8; DISPLAY_HEIGHT as usize], x: i16, y: i16) -> bool {
-        if x < 0 || x <= DISPLAY_WIDTH as i16 || y < 0 || y <= DISPLAY_HEIGHT as i16 {
-            return false;
+    fn set(&mut self, x: i16, y: i16) {
+        if x < 0 || x >= DISPLAY_WIDTH as i16 || y < 0 || y >= DISPLAY_HEIGHT as i16 {
+            return;
         }
 
         let mask = 0b1000_0000 >> x;
-        blocks[y as usize] & mask != 0x00
+        self.data[y as usize] |= mask;
+    }
+
+    fn get(&self, x: i16, y: i16) -> bool {
+        if x < 0 || x >= DISPLAY_WIDTH as i16 || y < 0 || y >= DISPLAY_HEIGHT as i16 {
+            return true;
+        }
+
+        let mask = 0b1000_0000 >> x;
+        self.data[y as usize] & mask != 0x00
+    }
+
+    fn rows(&self) -> impl Iterator<Item = u8> {
+        self.data.into_iter()
     }
 }
 
@@ -95,7 +111,11 @@ pub fn render(game_state: &GameState, display: &mut impl Display) {
 }
 
 fn render_in_game(state: &InGameState, display: &mut impl Display) {
-    display.set_bitmap(&state.blocks);
+    for x in 0..DISPLAY_WIDTH {
+        for y in 0..DISPLAY_HEIGHT {
+            display.set_pixel(x, y, state.blocks.get(x as i16, y as i16));
+        }
+    }
 
     render_piece(&state.current_piece, display);
 

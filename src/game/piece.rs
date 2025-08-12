@@ -10,7 +10,7 @@ pub struct Piece {
     pub position_y: i16,
     pub width: u8,
     pub height: u8,
-    blocks: [bool; 16],
+    blocks: [bool; MAX_SIZE],
 }
 
 impl Piece {
@@ -109,16 +109,6 @@ impl Piece {
                 ))
             })
         })
-    }
-
-    pub fn get(&self, col: u8, row: u8) -> bool {
-        self.blocks[row as usize + col as usize]
-    }
-
-    pub fn intersects_with(&self, x: i16, y: i16) -> bool {
-        let col = x - self.position_x;
-        let row = y - self.position_y;
-        self.get(col as u8, row as u8)
     }
 
     const fn new<const SIZE: usize>(
