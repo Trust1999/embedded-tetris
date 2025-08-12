@@ -12,16 +12,16 @@ mod time;
 use time::Time;
 
 mod game;
-use game::{render, ButtonAction, GameState, InGameState};
+use game::{ButtonAction, GameState, InGameState, render};
 
 mod display;
 use display::Max72xx;
 
 mod highscore;
-use highscore::{load_highscores, save_highscores, Highscores, NVS_NAMESPACE};
+use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
 
 //queue to save button inputs
-static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 100>>> = Lazy::new(|| Mutex::new(Queue::new()));
+static ACTION_QUEUE: Lazy<Mutex<Queue<ButtonAction, 32>>> = Lazy::new(|| Mutex::new(Queue::new()));
 
 //to save button
 static BUTTON1: Lazy<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> =
@@ -155,7 +155,14 @@ fn main() -> anyhow::Result<()> {
     loop {
         time.update()?;
 
-        game_state = game_state.update(&time);
+        let button_actions = ACTION_QUEUE
+            .lock()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
+
+        game_state = game_state.update(&button_actions, &time);
 
         render(&game_state, &mut display);
 

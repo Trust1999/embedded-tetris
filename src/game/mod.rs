@@ -1,4 +1,9 @@
-use crate::{DISPLAY_HEIGHT, DISPLAY_WIDTH, display::Display, game::piece::Piece, time::Time};
+use crate::{
+    DISPLAY_HEIGHT, DISPLAY_WIDTH,
+    display::Display,
+    game::piece::{Piece, Rotation},
+    time::Time,
+};
 
 mod piece;
 
@@ -16,10 +21,10 @@ pub struct InGameState {
 }
 
 impl GameState {
-    pub fn update(self, time: &Time) -> Self {
+    pub fn update(self, button_actions: &[ButtonAction], time: &Time) -> Self {
         match self {
             GameState::StartMenu => todo!(),
-            GameState::InGame(state) => state.update(time),
+            GameState::InGame(state) => state.update(button_actions, time),
             GameState::GameOverMenu => todo!(),
         }
     }
@@ -37,39 +42,58 @@ impl InGameState {
         }
     }
 
-    fn update(mut self, time: &Time) -> GameState {
-        if (time.now_ms() - self.time_last_move) < 250 {
-            return GameState::InGame(self);
+    fn update(mut self, button_actions: &[ButtonAction], time: &Time) -> GameState {
+        for button_action in button_actions {
+            match button_action {
+                ButtonAction::MoveLeft => self.current_piece.move_by(-1, 0),
+                ButtonAction::MoveRight => self.current_piece.move_by(1, 0),
+                ButtonAction::MoveDown => todo!(),
+                ButtonAction::Rotate => self.current_piece.rotate(Rotation::Deg90),
+            }
+
+            if self.update_blocks() {
+                return GameState::GameOverMenu;
+            }
         }
 
-        self.time_last_move = time.now_ms();
-        self.current_piece.move_by(0, 1);
+        if (time.now_ms() - self.time_last_move) >= 250 {
+            self.time_last_move = time.now_ms();
+            self.current_piece.move_by(0, 1);
 
-        if self.next_piece.is_none() && self.current_piece.position_y > 8 {
-            self.next_piece = Some(Piece::random());
+            if self.update_blocks() {
+                return GameState::GameOverMenu;
+            }
+
+            if self.next_piece.is_none() && self.current_piece.position_y > 8 {
+                self.next_piece = Some(Piece::random());
+            }
         }
 
+        GameState::InGame(self)
+    }
+
+    /// Returns whether the game is over
+    fn update_blocks(&mut self) -> bool {
         // Collissions with floor, walls and existing blocks
         let will_intersect = self.blocks.intersects(&self.current_piece);
-        if self.next_piece.is_some() && will_intersect {
-            // Place piece ontop of existing blocks
-            for (x, y) in self.current_piece.filled_positions() {
-                self.blocks.set(x, y);
+        if will_intersect {
+            // Place piece on top of existing blocks
+            self.blocks.place_piece(&self.current_piece);
+
+            // Remove full rows of blocks
+            let points = self.blocks.remove_full_rows() * 100;
+            log::info!("Gained {points} points");
+
+            // Check if game is over
+            let game_over = !self.blocks.rows().take(8).all(|row| row == 0x00);
+            if game_over {
+                return true;
             }
+
             self.current_piece = self.next_piece.take().unwrap();
         }
 
-        // Check if game is over
-        let blocks_reached_top = !self.blocks.rows().take(8).all(|row| row == 0x00);
-        if blocks_reached_top {
-            log::info!("Game over");
-            return GameState::GameOverMenu;
-        }
-
-        // Remove full rows of blocks
-        let points = self.blocks.remove_full_rows() * 100;
-
-        GameState::InGame(self)
+        false
     }
 }
 
@@ -102,6 +126,12 @@ impl Blocks {
 
     fn intersects(&self, piece: &Piece) -> bool {
         piece.filled_positions().any(|(x, y)| self.get(x, y))
+    }
+
+    fn place_piece(&mut self, piece: &Piece) {
+        for (x, y) in piece.filled_positions() {
+            self.set(x, y);
+        }
     }
 
     /// Returns how many rows were removed
