@@ -8,9 +8,9 @@ const MAX_SIZE: usize = MAX_WIDTH * MAX_HEIGHT;
 pub struct Piece {
     pub position_x: i16,
     pub position_y: i16,
+    pub width: u8,
+    pub height: u8,
     blocks: [bool; 16],
-    width: u8,
-    height: u8,
 }
 
 impl Piece {
@@ -98,6 +98,27 @@ impl Piece {
         self.blocks
             .chunks_exact(self.width as usize)
             .take(self.height as usize)
+    }
+
+    pub fn filled_positions(&self) -> impl Iterator<Item = (i16, i16)> {
+        self.rows().enumerate().flat_map(move |(local_y, row)| {
+            row.iter().enumerate().flat_map(move |(local_x, block)| {
+                block.then_some((
+                    self.position_x + local_x as i16,
+                    self.position_y + local_y as i16,
+                ))
+            })
+        })
+    }
+
+    pub fn get(&self, col: u8, row: u8) -> bool {
+        self.blocks[row as usize + col as usize]
+    }
+
+    pub fn intersects_with(&self, x: i16, y: i16) -> bool {
+        let col = x - self.position_x;
+        let row = y - self.position_y;
+        self.get(col as u8, row as u8)
     }
 
     const fn new<const SIZE: usize>(

@@ -36,20 +36,53 @@ impl GameState {
     }
 
     fn update_in_game(mut state: InGameState, time: &Time) -> Self {
-        if (time.now_ms() - state.time_last_move) >= 250 {
-            state.time_last_move = time.now_ms();
-            state.current_piece.move_by(0, 1);
+        if (time.now_ms() - state.time_last_move) < 250 {
+            return Self::InGame(state);
         }
+
+        state.time_last_move = time.now_ms();
+        state.current_piece.move_by(0, 1);
 
         if state.next_piece.is_none() && state.current_piece.position_y > 8 {
             state.next_piece = Some(Piece::random());
         }
 
-        if state.next_piece.is_some() && state.current_piece.position_y >= DISPLAY_HEIGHT as i16 {
+        // Check intersections
+        let will_intersect = Self::will_intersect(&state.current_piece, &state.blocks);
+        if state.next_piece.is_some() && will_intersect {
             state.current_piece = state.next_piece.take().unwrap();
         }
 
+        let blocks_reached_top = !state.blocks[0..8].iter().all(|row| *row == 0x00);
+        if blocks_reached_top {
+            return Self::GameOverMenu;
+        }
+
         Self::InGame(state)
+    }
+
+    fn will_intersect(piece: &Piece, blocks: &[u8; DISPLAY_HEIGHT as usize]) -> bool {
+        let mut future_piece = piece.clone();
+        future_piece.move_by(0, 1);
+
+        let will_intersect_floor = (0..future_piece.width as i16).any(|x| {
+            future_piece.intersects_with(future_piece.position_x + x, DISPLAY_HEIGHT as i16)
+        });
+
+        let will_intersect_blocks = future_piece
+            .filled_positions()
+            .any(|(x, y)| Self::blocks_get(blocks, x, y));
+
+        will_intersect_floor || will_intersect_blocks
+    }
+
+    fn blocks_get(blocks: &[u8; DISPLAY_HEIGHT as usize], x: i16, y: i16) -> bool {
+        if x < 0 || x <= DISPLAY_WIDTH as i16 || y < 0 || y <= DISPLAY_HEIGHT as i16 {
+            return false;
+        }
+
+        let mask = 0b1000_0000 >> x;
+        blocks[y as usize] & mask != 0x00
     }
 }
 
