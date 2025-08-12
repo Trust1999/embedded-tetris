@@ -77,11 +77,58 @@ impl Piece {
     }
 
     pub fn rotate(&mut self, by: Rotation) {
-        // TODO
+        let old_w = self.width as usize;
+        let old_h = self.height as usize;
+
+        // Temporary storage for previous state
+        let prev = self.blocks;
+        self.blocks = [false; MAX_SIZE];
+
+        match by {
+            Rotation::Deg0 => {
+                // Copy unchanged
+                self.blocks = prev;
+            }
+            Rotation::Deg90 => {
+                // New width = old height, new height = old width
+                for y in 0..old_h {
+                    for x in 0..old_w {
+                        let new_x = old_h - 1 - y;
+                        let new_y = x;
+                        self.blocks[new_y * old_h + new_x] = prev[y * old_w + x];
+                    }
+                }
+                self.width = old_h as u8;
+                self.height = old_w as u8;
+            }
+            Rotation::Deg180 => {
+                for y in 0..old_h {
+                    for x in 0..old_w {
+                        let new_x = old_w - 1 - x;
+                        let new_y = old_h - 1 - y;
+                        self.blocks[new_y * old_w + new_x] = prev[y * old_w + x];
+                    }
+                }
+            }
+            Rotation::Deg270 => {
+                // New width = old height, new height = old width
+                for y in 0..old_h {
+                    for x in 0..old_w {
+                        let new_x = y;
+                        let new_y = old_w - 1 - x;
+                        self.blocks[new_y * old_h + new_x] = prev[y * old_w + x];
+                    }
+                }
+                self.width = old_h as u8;
+                self.height = old_w as u8;
+            }
+        }
     }
 
     pub fn mirror(&mut self) {
-        // TODO
+        for row in self.rows_mut() {
+            row.reverse();
+        }
     }
 
     pub fn move_to(&mut self, x: i16, y: i16) {
@@ -97,6 +144,12 @@ impl Piece {
     pub fn rows(&self) -> impl Iterator<Item = &[bool]> {
         self.blocks
             .chunks_exact(self.width as usize)
+            .take(self.height as usize)
+    }
+
+    pub fn rows_mut(&mut self) -> impl Iterator<Item = &mut [bool]> {
+        self.blocks
+            .chunks_exact_mut(self.width as usize)
             .take(self.height as usize)
     }
 
