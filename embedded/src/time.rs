@@ -8,6 +8,16 @@ pub struct Time<'d> {
     current_ms: u64,
 }
 
+impl game::time::Time for Time<'_> {
+    fn now_ms(&self) -> u64 {
+        self.current_ms
+    }
+
+    fn delta_time_ms(&self) -> u64 {
+        self.current_ms - self.last_ms
+    }
+}
+
 impl<'d> Time<'d> {
     pub fn setup(timer_peripheral: impl Peripheral<P = impl Timer> + 'd) -> Result<Self, EspError> {
         let config = TimerConfig::new().auto_reload(true).divider(8000);
@@ -31,17 +41,9 @@ impl<'d> Time<'d> {
         self.last_ms = self.current_ms;
         self.current_ms = self.timer.counter()? / 10;
 
-        log::debug!("time = {}s", self.now_ms() / 1000);
-        log::debug!("delta time = {}ms", self.delta_time_ms());
+        log::debug!("time = {}s", game::time::Time::now_ms(self) / 1000);
+        log::debug!("delta time = {}ms", game::time::Time::delta_time_ms(self));
 
         Ok(())
-    }
-
-    pub fn now_ms(&self) -> u64 {
-        self.current_ms
-    }
-
-    pub fn delta_time_ms(&self) -> u64 {
-        self.current_ms - self.last_ms
     }
 }

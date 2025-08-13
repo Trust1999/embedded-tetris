@@ -1,11 +1,9 @@
-use crate::{
-    DISPLAY_HEIGHT, DISPLAY_WIDTH,
-    display::Display,
-    game::piece::{Piece, Rotation},
-    time::Time,
-};
+use crate::display::Display;
+use crate::time::Time;
+use crate::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
 mod piece;
+use piece::{Piece, Rotation};
 
 pub enum GameState {
     StartMenu,
@@ -21,7 +19,7 @@ pub struct InGameState {
 }
 
 impl GameState {
-    pub fn update(self, button_actions: &[ButtonAction], time: &Time) -> Self {
+    pub fn update(self, button_actions: &[ButtonAction], time: &impl Time) -> Self {
         match self {
             GameState::StartMenu => GameState::StartMenu,
             GameState::InGame(state) => state.update(button_actions, time),
@@ -42,7 +40,7 @@ impl InGameState {
         }
     }
 
-    fn update(mut self, button_actions: &[ButtonAction], time: &Time) -> GameState {
+    fn update(mut self, button_actions: &[ButtonAction], time: &impl Time) -> GameState {
         let piece_events = button_actions
             .iter()
             .map(|button_action| match button_action {
@@ -95,7 +93,8 @@ impl InGameState {
             self.current_piece = collision_piece;
         }
 
-        if self.next_piece.is_none() && self.current_piece.position_y > 8 {
+        let ((_, min_y), _) = self.current_piece.aabb();
+        if self.next_piece.is_none() && min_y > 8 {
             self.next_piece = Some(Piece::random());
         }
 
@@ -131,12 +130,14 @@ impl Blocks {
     }
 
     fn intersects(&self, piece: &Piece) -> bool {
-        piece.filled_positions().any(|(x, y)| self.get(x, y))
+        piece
+            .block_positions()
+            .any(|(x, y)| self.get(x as i16, y as i16))
     }
 
     fn place_piece(&mut self, piece: &Piece) {
-        for (x, y) in piece.filled_positions() {
-            self.set(x, y);
+        for (x, y) in piece.block_positions() {
+            self.set(x as i16, y as i16);
         }
     }
 
@@ -197,17 +198,9 @@ fn render_in_game(state: &InGameState, display: &mut impl Display) {
 }
 
 fn render_piece(piece: &Piece, display: &mut impl Display) {
-    for (row, blocks) in piece.rows().enumerate() {
-        for (col, block) in blocks.iter().enumerate() {
-            let x = col as i16 + piece.position_x;
-            let y = row as i16 + piece.position_y;
-
-            if *block
-                && (0..DISPLAY_WIDTH as i16).contains(&x)
-                && (0..DISPLAY_HEIGHT as i16).contains(&y)
-            {
-                display.set_pixel(x as u8, y as u8, true);
-            }
+    for (x, y) in piece.block_positions() {
+        if (0..DISPLAY_WIDTH as i16).contains(&x) && (0..DISPLAY_HEIGHT as i16).contains(&y) {
+            display.set_pixel(x as u8, y as u8, true);
         }
     }
 }

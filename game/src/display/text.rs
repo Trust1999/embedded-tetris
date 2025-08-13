@@ -62,8 +62,4 @@ impl super::Display for TextDisplay {
             *line &= !mask;
         }
     }
-
-    fn set_bitmap(&mut self, bitmap: &[u8]) {
-        self.data.copy_from_slice(bitmap);
-    }
 }
