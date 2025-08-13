@@ -1,5 +1,6 @@
+use std::time::{Duration, Instant};
+
 use crate::display::Display;
-use crate::time::Time;
 use crate::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
 mod piece;
@@ -15,14 +16,14 @@ pub struct InGameState {
     blocks: Blocks,
     current_piece: Piece,
     next_piece: Option<Piece>,
-    time_last_move: u64,
+    time_last_move: Instant,
 }
 
 impl GameState {
-    pub fn update(self, button_actions: &[ButtonAction], time: &impl Time) -> Self {
+    pub fn update(self, button_actions: &[ButtonAction], now: Instant) -> Self {
         match self {
             GameState::StartMenu => GameState::StartMenu,
-            GameState::InGame(state) => state.update(button_actions, time),
+            GameState::InGame(state) => state.update(button_actions, now),
             GameState::GameOverMenu => GameState::GameOverMenu,
         }
     }
@@ -36,11 +37,11 @@ impl InGameState {
             },
             current_piece: Piece::random(),
             next_piece: None,
-            time_last_move: 0,
+            time_last_move: Instant::now(),
         }
     }
 
-    fn update(mut self, button_actions: &[ButtonAction], time: &impl Time) -> GameState {
+    fn update(mut self, button_actions: &[ButtonAction], now: Instant) -> GameState {
         let piece_events = button_actions
             .iter()
             .map(|button_action| match button_action {
@@ -49,10 +50,14 @@ impl InGameState {
                 ButtonAction::MoveDown => PieceEvent::Drop,
                 ButtonAction::Rotate => PieceEvent::Rotate(Rotation::Deg90),
             })
-            .chain(((time.now_ms() - self.time_last_move) >= 250).then(|| {
-                self.time_last_move = time.now_ms();
-                PieceEvent::MoveBy(0, 1)
-            }));
+            .chain({
+                let should_move =
+                    (now.duration_since(self.time_last_move)) >= Duration::from_millis(250);
+                should_move.then(|| {
+                    self.time_last_move = now;
+                    PieceEvent::MoveBy(0, 1)
+                })
+            });
 
         for piece_event in piece_events {
             if self.update_piece_and_blocks(piece_event) {

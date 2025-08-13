@@ -1,13 +1,10 @@
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
-use esp_idf_hal::task::watchdog::TWDTDriver;
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
 use game::display::Max72xx;
 use game::logic::{GameState, InGameState};
 use std::sync::{Arc, Mutex};
-
-mod time;
-use time::Time;
+use std::time::Instant;
 
 mod highscore;
 use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
@@ -61,9 +58,6 @@ fn main() -> anyhow::Result<()> {
     let mut button3 = setup_button(peripherals.pins.gpio6, gpio_06);
     let mut button4 = setup_button(peripherals.pins.gpio7, gpio_07);
 
-    let mut time = Time::setup(peripherals.timer00)?;
-    time.start()?;
-
     let mut game_state = GameState::InGame(InGameState::new());
 
     println!("{:?}", highscores);
@@ -74,8 +68,6 @@ fn main() -> anyhow::Result<()> {
         button3.enable_interrupt()?;
         button4.enable_interrupt()?;
 
-        time.update()?;
-
         let button_actions = ACTION_QUEUE.pop_iter().collect::<Vec<_>>();
 
         /*
@@ -84,7 +76,7 @@ fn main() -> anyhow::Result<()> {
         highscores_lock.add_score(score);
         save_highscores(&mut nvs, &highscores_lock)?;
         */
-        game_state = game_state.update(&button_actions, &time);
+        game_state = game_state.update(&button_actions, Instant::now());
 
         game::logic::render(&game_state, &mut display);
 
