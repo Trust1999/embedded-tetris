@@ -5,7 +5,7 @@ use heapless::spsc::Queue;
 use crate::game::ButtonAction;
 
 //queue to save button inputs
-pub static ACTION_QUEUE: LazyLock<Mutex<Queue<ButtonAction, 100>>> = LazyLock::new(|| Mutex::new(Queue::new()));
+pub static ACTION_QUEUE: LazyLock<Mutex<Queue<ButtonAction, 32>>> = LazyLock::new(|| Mutex::new(Queue::new()));
 
 //to save button
 pub static BUTTON1: LazyLock<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> = LazyLock::new(|| Mutex::new(None));

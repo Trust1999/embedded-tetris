@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
-use esp_idf_svc::hal::prelude::Peripherals;
 use esp_idf_svc::http::server::{Configuration, EspHttpServer};
 use esp_idf_svc::nvs::EspNvsPartition;
 use esp_idf_svc::wifi::{AuthMethod, BlockingWifi, EspWifi};
@@ -96,7 +95,7 @@ fn generate_html(highscores: &Highscores) -> String {
         body.push_str("<p>Bisher keine Highscores aufgezeichnet.</p>");
     } else {
         body.push_str("<ol>");
-        for (index, score) in highscores.scores.iter().enumerate() {
+        for (_index, score) in highscores.scores.iter().enumerate() {
             body.push_str(&format!("<li>Platz: {} Punkte</li>", score));
         }
         body.push_str("</ol>");

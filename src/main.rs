@@ -1,28 +1,30 @@
-use esp_idf_hal::gpio::*;
 use esp_idf_hal::gpio::{self, PinDriver, Pull};
-use std::sync::{Arc, Mutex};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
-
+use std::sync::{Arc, Mutex};
 
 mod time;
 use time::Time;
 
 mod game;
-use game::{ButtonAction, GameState, InGameState, render};
+use game::{GameState, InGameState, render};
 
 mod display;
 use display::Max72xx;
 
 mod highscore;
-use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
+use highscore::{NVS_NAMESPACE, load_highscores};
 
 mod website;
+use crate::game::ButtonAction;
+use crate::highscore::save_highscores;
 use website::WifiServer;
 
 mod input;
-use crate::input::{gpio_04, gpio_05, gpio_06, gpio_07, ACTION_QUEUE, BUTTON1, BUTTON2, BUTTON3, BUTTON4};
+use crate::input::{
+    ACTION_QUEUE, BUTTON1, BUTTON2, BUTTON3, BUTTON4, gpio_04, gpio_05, gpio_06, gpio_07,
+};
 
 const DISPLAY_WIDTH: u8 = 8;
 const DISPLAY_HEIGHT: u8 = 8 * 4;
@@ -35,17 +37,17 @@ fn main() -> anyhow::Result<()> {
     // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    let mut peripherals = Peripherals::take().unwrap();
+    let peripherals = Peripherals::take().unwrap();
 
     // NVS-Partition für die WLAN-Konfiguration
     let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
     let mut nvs = EspNvs::new(partition.clone(), NVS_NAMESPACE, true).unwrap();
-    let highscore = Arc::new(Mutex::new(
-        load_highscores(&mut nvs).unwrap()
-    ));
 
-    let server_highscores = Arc::clone(&highscore);
-    let _wifi_server = WifiServer::new(peripherals.modem, partition, server_highscores).unwrap();
+    //Webserver initialization with score from memory
+    let highscores = Arc::new(Mutex::new(load_highscores(&mut nvs).unwrap()));
+    let server_highscores = Arc::clone(&highscores);
+    let _wifi_server =
+        WifiServer::new(peripherals.modem, partition.clone(), server_highscores).unwrap();
 
     let mut display = {
         // Initialize SPI2
@@ -138,7 +140,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut game_state = GameState::InGame(InGameState::new());
 
-    println!("{:?}", highscore);
+    println!("{:?}", highscores);
 
     loop {
         time.update()?;
@@ -157,4 +159,3 @@ fn main() -> anyhow::Result<()> {
         display.transfer_bitmap()?;
     }
 }
-
