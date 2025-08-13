@@ -1,5 +1,9 @@
 use crate::game::ButtonAction;
-use esp_idf_hal::gpio::{Gpio4, Gpio5, Gpio6, Gpio7, Input, PinDriver};
+use esp_idf_hal::gpio;
+use esp_idf_hal::gpio::{
+    Gpio4, Gpio5, Gpio6, Gpio7, Input, InputPin, OutputPin, Pin, PinDriver, Pull,
+};
+use esp_idf_hal::peripheral::Peripheral;
 use lockfree::queue::Queue;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
@@ -16,6 +20,27 @@ pub static LAST_PRESS_3: LazyLock<Mutex<Instant>> =
     LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
 pub static LAST_PRESS_4: LazyLock<Mutex<Instant>> =
     LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+
+pub fn setup_button<'d>(
+    pin: impl Peripheral<P = impl InputPin + OutputPin> + 'd,
+    callback: impl FnMut() -> () + Send + 'static,
+) -> PinDriver<'d, impl Pin, Input> {
+    // Create a new PinDriver for GPIO4 configured as an input pin
+    let mut driver = PinDriver::input(pin).unwrap();
+    // Enable an internal pull-up resistor on GPIO4
+    driver.set_pull(Pull::Up).unwrap();
+    // Set the interrupt to trigger on a positive edge (low → high transition)
+    driver
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
+    // Subscribe the GPIO4 interrupt to call the function `gipo_04` when triggered
+    // `unsafe` is needed because we are passing a raw function pointer
+    unsafe { driver.subscribe(callback).unwrap() };
+    // Enable interrupts for this pin
+    driver.enable_interrupt().unwrap();
+
+    driver
+}
 
 // Debounce + Queue Push for Button 1 (MoveLeft)
 pub fn gpio_04() {

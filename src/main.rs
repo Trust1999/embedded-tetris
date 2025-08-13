@@ -1,4 +1,4 @@
-use esp_idf_hal::gpio::{self, Input, InputPin, OutputPin, Pin, PinDriver, Pull};
+use esp_idf_hal::gpio::{InputPin, OutputPin, Pin};
 use esp_idf_hal::peripheral::Peripheral;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
@@ -21,7 +21,7 @@ mod website;
 use website::WifiServer;
 
 mod input;
-use crate::input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07};
+use crate::input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07, setup_button};
 
 const DISPLAY_WIDTH: u8 = 8;
 const DISPLAY_HEIGHT: u8 = 8 * 4;
@@ -36,7 +36,7 @@ fn main() -> anyhow::Result<()> {
 
     let peripherals = Peripherals::take().unwrap();
 
-    // NVS-Partition für die WLAN-Konfiguration
+    // NVS partition for WLAN configuration
     let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
     let mut nvs = EspNvs::new(partition.clone(), NVS_NAMESPACE, true).unwrap();
 
@@ -99,25 +99,4 @@ fn main() -> anyhow::Result<()> {
 
         display.transfer_bitmap()?;
     }
-}
-
-fn setup_button<'d>(
-    pin: impl Peripheral<P = impl InputPin + OutputPin> + 'd,
-    callback: impl FnMut() -> () + Send + 'static,
-) -> PinDriver<'d, impl Pin, Input> {
-    // Create a new PinDriver for GPIO4 configured as an input pin
-    let mut driver = PinDriver::input(pin).unwrap();
-    // Enable an internal pull-up resistor on GPIO4
-    driver.set_pull(Pull::Up).unwrap();
-    // Set the interrupt to trigger on a positive edge (low → high transition)
-    driver
-        .set_interrupt_type(gpio::InterruptType::PosEdge)
-        .unwrap();
-    // Subscribe the GPIO4 interrupt to call the function `gipo_04` when triggered
-    // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { driver.subscribe(callback).unwrap() };
-    // Enable interrupts for this pin
-    driver.enable_interrupt().unwrap();
-
-    driver
 }
