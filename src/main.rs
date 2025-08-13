@@ -1,4 +1,3 @@
-use esp_hal;
 use esp_idf_hal::gpio::{InputPin, OutputPin, Pin};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
@@ -9,19 +8,19 @@ mod time;
 use time::Time;
 
 mod game;
-use game::{GameState, InGameState, render};
+use game::{render, GameState, InGameState};
 
 mod display;
 use display::Max72xx;
 
 mod highscore;
-use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
+use highscore::{load_highscores, save_highscores, Highscores, NVS_NAMESPACE};
 
 mod website;
 use website::WifiServer;
 
 mod input;
-use crate::input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07, setup_button};
+use crate::input::{gpio_04, gpio_05, gpio_06, gpio_07, setup_button, ACTION_QUEUE};
 
 const DISPLAY_WIDTH: u8 = 8;
 const DISPLAY_HEIGHT: u8 = 8 * 4;
@@ -45,8 +44,6 @@ fn main() -> anyhow::Result<()> {
     let server_highscores = Arc::clone(&highscores);
     let _wifi_server =
         WifiServer::new(peripherals.modem, partition.clone(), server_highscores).unwrap();
-
-    let dma_channel = peripherals.DMA_SPI2;
 
     let mut display = {
         // Initialize SPI2
