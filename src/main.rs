@@ -1,5 +1,5 @@
-use esp_idf_hal::gpio::*;
-use esp_idf_hal::gpio::{self, PinDriver, Pull};
+use esp_idf_hal::gpio::{self, Input, InputPin, OutputPin, Pin, PinDriver, Pull};
+use esp_idf_hal::peripheral::Peripheral;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
@@ -21,9 +21,7 @@ mod website;
 use website::WifiServer;
 
 mod input;
-use crate::input::{
-    ACTION_QUEUE, BUTTON1, BUTTON2, BUTTON3, BUTTON4, gpio_04, gpio_05, gpio_06, gpio_07,
-};
+use crate::input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07};
 
 const DISPLAY_WIDTH: u8 = 8;
 const DISPLAY_HEIGHT: u8 = 8 * 4;
@@ -66,73 +64,10 @@ fn main() -> anyhow::Result<()> {
     };
     display.reset()?;
 
-    // Create a new PinDriver for GPIO4 configured as an input pin
-    let mut button1 = PinDriver::input(peripherals.pins.gpio4).unwrap();
-    // Enable an internal pull-up resistor on GPIO4
-    button1.set_pull(Pull::Up).unwrap();
-    // Set the interrupt to trigger on a positive edge (low → high transition)
-    button1
-        .set_interrupt_type(gpio::InterruptType::PosEdge)
-        .unwrap();
-    // Subscribe the GPIO4 interrupt to call the function `gipo_04` when triggered
-    // `unsafe` is needed because we are passing a raw function pointer
-    unsafe {
-        button1.subscribe(gpio_04).unwrap();
-    }
-    // Enable interrupts for this pin
-    button1.enable_interrupt().unwrap();
-    *BUTTON1.lock().unwrap() = Some(button1);
-
-    // Create a new PinDriver for GPIO5 configured as an input pin
-    let mut button2 = PinDriver::input(peripherals.pins.gpio5).unwrap();
-    // Enable an internal pull-up resistor on GPIO5
-    button2.set_pull(Pull::Up).unwrap();
-    // Set the interrupt to trigger on a positive edge (low → high transition)
-    button2
-        .set_interrupt_type(gpio::InterruptType::PosEdge)
-        .unwrap();
-    // Subscribe the GPIO4 interrupt to call the function `gipo_05` when triggered
-    // `unsafe` is needed because we are passing a raw function pointer
-    unsafe {
-        button2.subscribe(gpio_05).unwrap();
-    }
-    // Enable interrupts for this pin
-    button2.enable_interrupt().unwrap();
-    *BUTTON2.lock().unwrap() = Some(button2);
-
-    // Create a new PinDriver for GPIO6 configured as an input pin
-    let mut button3 = PinDriver::input(peripherals.pins.gpio6).unwrap();
-    // Enable an internal pull-up resistor on GPIO6
-    button3.set_pull(Pull::Up).unwrap();
-    // Set the interrupt to trigger on a positive edge (low → high transition)
-    button3
-        .set_interrupt_type(gpio::InterruptType::PosEdge)
-        .unwrap();
-    // Subscribe the GPIO4 interrupt to call the function `gipo_06` when triggered
-    // `unsafe` is needed because we are passing a raw function pointer
-    unsafe {
-        button3.subscribe(gpio_06).unwrap();
-    }
-    // Enable interrupts for this pin
-    button3.enable_interrupt().unwrap();
-    *BUTTON3.lock().unwrap() = Some(button3);
-
-    // Create a new PinDriver for GPIO7 configured as an input pin
-    let mut button4 = PinDriver::input(peripherals.pins.gpio7).unwrap();
-    // Enable an internal pull-up resistor on GPIO7
-    button4.set_pull(Pull::Up).unwrap();
-    // Set the interrupt to trigger on a positive edge (low → high transition)
-    button4
-        .set_interrupt_type(gpio::InterruptType::PosEdge)
-        .unwrap();
-    // Subscribe the GPIO4 interrupt to call the function `gipo_07` when triggered
-    // `unsafe` is needed because we are passing a raw function pointer
-    unsafe {
-        button4.subscribe(gpio_07).unwrap();
-    }
-    // Enable interrupts for this pin
-    button4.enable_interrupt().unwrap();
-    *BUTTON4.lock().unwrap() = Some(button4);
+    let mut button1 = setup_button(peripherals.pins.gpio4, gpio_04);
+    let mut button2 = setup_button(peripherals.pins.gpio5, gpio_05);
+    let mut button3 = setup_button(peripherals.pins.gpio6, gpio_06);
+    let mut button4 = setup_button(peripherals.pins.gpio7, gpio_07);
 
     let mut time = Time::setup(peripherals.timer00)?;
     time.start()?;
@@ -142,6 +77,11 @@ fn main() -> anyhow::Result<()> {
     println!("{:?}", highscores);
 
     loop {
+        button1.enable_interrupt()?;
+        button2.enable_interrupt()?;
+        button3.enable_interrupt()?;
+        button4.enable_interrupt()?;
+
         time.update()?;
 
         let button_actions = ACTION_QUEUE.pop_iter().collect::<Vec<_>>();
@@ -159,4 +99,25 @@ fn main() -> anyhow::Result<()> {
 
         display.transfer_bitmap()?;
     }
+}
+
+fn setup_button<'d>(
+    pin: impl Peripheral<P = impl InputPin + OutputPin> + 'd,
+    callback: impl FnMut() -> () + Send + 'static,
+) -> PinDriver<'d, impl Pin, Input> {
+    // Create a new PinDriver for GPIO4 configured as an input pin
+    let mut driver = PinDriver::input(pin).unwrap();
+    // Enable an internal pull-up resistor on GPIO4
+    driver.set_pull(Pull::Up).unwrap();
+    // Set the interrupt to trigger on a positive edge (low → high transition)
+    driver
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
+    // Subscribe the GPIO4 interrupt to call the function `gipo_04` when triggered
+    // `unsafe` is needed because we are passing a raw function pointer
+    unsafe { driver.subscribe(callback).unwrap() };
+    // Enable interrupts for this pin
+    driver.enable_interrupt().unwrap();
+
+    driver
 }
