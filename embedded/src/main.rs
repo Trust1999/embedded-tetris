@@ -4,10 +4,10 @@ use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
 use game::display::Max72xx;
 use game::logic::{GameState, InGameState};
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
-mod highscore;
-use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
+pub mod highscore;
+use highscore::{NVS_NAMESPACE, load_highscores, save_highscores};
 
 mod website;
 use website::WifiServer;
@@ -15,7 +15,7 @@ use website::WifiServer;
 mod input;
 use input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07, setup_button};
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_svc::sys::link_patches();
@@ -29,11 +29,13 @@ fn main() -> anyhow::Result<()> {
     let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
     let mut nvs = EspNvs::new(partition.clone(), NVS_NAMESPACE, true).unwrap();
 
-    //Webserver initialization with score from memory
-    let highscores = Arc::new(Mutex::new(load_highscores(&mut nvs).unwrap()));
-    let server_highscores = Arc::clone(&highscores);
-    let _wifi_server =
-        WifiServer::new(peripherals.modem, partition.clone(), server_highscores).unwrap();
+    // Webserver initialization with score from memory
+    let highscores = Arc::new(Mutex::new(load_highscores(&mut nvs)?));
+    let _wifi_server = WifiServer::new(
+        peripherals.modem,
+        partition.clone(),
+        Arc::clone(&highscores),
+    )?;
 
     let mut display = {
         // Initialize SPI2
@@ -62,6 +64,8 @@ fn main() -> anyhow::Result<()> {
 
     println!("{:?}", highscores);
 
+    while highscores.try_lock().is_err() {}
+
     loop {
         button1.enable_interrupt()?;
         button2.enable_interrupt()?;
@@ -70,13 +74,13 @@ fn main() -> anyhow::Result<()> {
 
         let button_actions = ACTION_QUEUE.pop_iter().collect::<Vec<_>>();
 
-        /*
-        to save a highscore
-        let mut highscores_lock = highscores.lock().unwrap();
-        highscores_lock.add_score(score);
-        save_highscores(&mut nvs, &highscores_lock)?;
-        */
-        game_state = game_state.update(&button_actions, Instant::now());
+        {
+            let mut highscores = highscores.lock().unwrap();
+            game_state = game_state.update(&button_actions, Instant::now(), |score| {
+                highscores.add_score(score)
+            });
+            save_highscores(&mut nvs, &highscores)?;
+        }
 
         game::logic::render(&game_state, &mut display);
 

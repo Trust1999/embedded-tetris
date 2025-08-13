@@ -1,11 +1,11 @@
 use esp_idf_svc::nvs::{EspNvs, NvsDefault};
-use serde::{Deserialize, Serialize};
+use std::num::ParseIntError;
 
 const MAX_HIGHSCORES: usize = 10;
 pub const NVS_NAMESPACE: &str = "highscores";
 const NVS_KEY: &str = "scores_v2";
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug)]
 pub struct Highscores {
     pub scores: Vec<u32>,
 }
@@ -23,22 +23,43 @@ impl Highscores {
         self.scores.sort_by(|a, b| b.cmp(a));
         self.scores.truncate(MAX_HIGHSCORES);
     }
+
+    fn serialize(&self) -> String {
+        self.scores
+            .iter()
+            .map(u32::to_string)
+            .reduce(|accum, elem| accum + "," + &elem)
+            .unwrap_or_default()
+    }
+
+    fn deserialize(string: &str) -> Result<Self, ParseIntError> {
+        Ok(Self {
+            scores: string.split(",").map(|str| dbg!(str).parse()).fold(
+                Ok(Vec::new()),
+                |maybe_accum, maybe_elem| {
+                    let mut accum = maybe_accum?;
+                    accum.push(maybe_elem?);
+                    Ok(accum)
+                },
+            )?,
+        })
+    }
 }
 
 pub fn save_highscores(
     nvs: &mut EspNvs<NvsDefault>,
     highscores: &Highscores,
-) -> Result<(), anyhow::Error> {
-    // Serializes the highscores structure (now just a list of numbers) into a JSON string
-    let serialized_scores = serde_json::to_string(highscores)?;
-    nvs.set_str(NVS_KEY, &serialized_scores)?;
+) -> Result<(), Box<dyn std::error::Error>> {
+    nvs.set_str(NVS_KEY, &highscores.serialize())?;
     Ok(())
 }
 
-pub fn load_highscores(nvs: &mut EspNvs<NvsDefault>) -> Result<Highscores, anyhow::Error> {
+pub fn load_highscores(
+    nvs: &mut EspNvs<NvsDefault>,
+) -> Result<Highscores, Box<dyn std::error::Error>> {
     // Reads the JSON string and attempts to deserialize it
     if let Some(serialized_scores) = nvs.get_str(NVS_KEY, &mut [0u8; 255])? {
-        let highscores: Highscores = serde_json::from_str(&serialized_scores)?;
+        let highscores: Highscores = Highscores::deserialize(&serialized_scores)?;
         Ok(highscores)
     } else {
         Ok(Highscores::new())
