@@ -66,13 +66,6 @@ impl Piece {
             piece.mirror();
         }
 
-        // Rotate by random amount
-        let rotation = match rng.random_range(0..1) {
-            0 => Rotation::Deg0,
-            _ => Rotation::Deg180,
-        };
-        piece.rotate(rotation);
-
         piece
     }
 

@@ -1,8 +1,9 @@
+use esp_idf_hal::gpio::*;
 use esp_idf_hal::gpio::{self, PinDriver, Pull};
+use std::sync::{Arc, Mutex};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
-use std::sync::{Arc, Mutex};
 
 mod time;
 use time::Time;
@@ -14,11 +15,9 @@ mod display;
 use display::Max72xx;
 
 mod highscore;
-use highscore::{NVS_NAMESPACE, load_highscores};
+use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
 
 mod website;
-use crate::game::ButtonAction;
-use crate::highscore::save_highscores;
 use website::WifiServer;
 
 mod input;
@@ -42,6 +41,7 @@ fn main() -> anyhow::Result<()> {
     // NVS-Partition für die WLAN-Konfiguration
     let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
     let mut nvs = EspNvs::new(partition.clone(), NVS_NAMESPACE, true).unwrap();
+    let highscore = Arc::new(Mutex::new(load_highscores(&mut nvs).unwrap()));
 
     //Webserver initialization with score from memory
     let highscores = Arc::new(Mutex::new(load_highscores(&mut nvs).unwrap()));
@@ -145,13 +145,7 @@ fn main() -> anyhow::Result<()> {
     loop {
         time.update()?;
 
-        let button_actions = ACTION_QUEUE
-            .lock()
-            .unwrap()
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
-
+        let button_actions = ACTION_QUEUE.pop_iter().collect::<Vec<_>>();
         game_state = game_state.update(&button_actions, &time);
 
         render(&game_state, &mut display);

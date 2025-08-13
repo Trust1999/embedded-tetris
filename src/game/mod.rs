@@ -15,7 +15,6 @@ pub enum GameState {
 
 pub struct InGameState {
     blocks: Blocks,
-    collision_piece: Piece,
     current_piece: Piece,
     next_piece: Option<Piece>,
     time_last_move: u64,
@@ -33,42 +32,33 @@ impl GameState {
 
 impl InGameState {
     pub fn new() -> Self {
-        let current_piece = Piece::random();
         Self {
             blocks: Blocks {
                 data: [0; DISPLAY_HEIGHT as usize],
             },
-            collision_piece: current_piece.clone(),
-            current_piece,
+            current_piece: Piece::random(),
             next_piece: None,
             time_last_move: 0,
         }
     }
 
     fn update(mut self, button_actions: &[ButtonAction], time: &Time) -> GameState {
-        for button_action in button_actions {
-            match button_action {
-                ButtonAction::MoveLeft => self.collision_piece.move_by(-1, 0),
-                ButtonAction::MoveRight => self.collision_piece.move_by(1, 0),
-                ButtonAction::MoveDown => todo!(),
-                ButtonAction::Rotate => self.collision_piece.rotate(Rotation::Deg90),
-            }
+        let piece_events = button_actions
+            .iter()
+            .map(|button_action| match button_action {
+                ButtonAction::MoveLeft => PieceEvent::MoveBy(-1, 0),
+                ButtonAction::MoveRight => PieceEvent::MoveBy(1, 0),
+                ButtonAction::MoveDown => PieceEvent::Drop,
+                ButtonAction::Rotate => PieceEvent::Rotate(Rotation::Deg90),
+            })
+            .chain(((time.now_ms() - self.time_last_move) >= 250).then(|| {
+                self.time_last_move = time.now_ms();
+                PieceEvent::MoveBy(0, 1)
+            }));
 
-            if self.update_blocks() {
+        for piece_event in piece_events {
+            if self.update_piece_and_blocks(piece_event) {
                 return GameState::GameOverMenu;
-            }
-        }
-
-        if (time.now_ms() - self.time_last_move) >= 250 {
-            self.time_last_move = time.now_ms();
-            self.collision_piece.move_by(0, 1);
-
-            if self.update_blocks() {
-                return GameState::GameOverMenu;
-            }
-
-            if self.next_piece.is_none() && self.current_piece.position_y > 8 {
-                self.next_piece = Some(Piece::random());
             }
         }
 
@@ -76,9 +66,16 @@ impl InGameState {
     }
 
     /// Returns whether the game is over
-    fn update_blocks(&mut self) -> bool {
+    fn update_piece_and_blocks(&mut self, piece_event: PieceEvent) -> bool {
+        let mut collision_piece = self.current_piece.clone();
+        match piece_event {
+            PieceEvent::Drop => todo!(),
+            PieceEvent::MoveBy(dx, dy) => collision_piece.move_by(dx, dy),
+            PieceEvent::Rotate(rotation) => collision_piece.rotate(rotation),
+        }
+
         // Collissions with floor, walls and existing blocks
-        let will_intersect = self.blocks.intersects(&self.collision_piece);
+        let will_intersect = self.blocks.intersects(&collision_piece);
         if will_intersect {
             // Place piece on top of existing blocks
             self.blocks.place_piece(&self.current_piece);
@@ -94,9 +91,12 @@ impl InGameState {
             }
 
             self.current_piece = self.next_piece.take().unwrap();
-            self.collision_piece = self.current_piece.clone();
         } else {
-            self.current_piece = self.collision_piece.clone();
+            self.current_piece = collision_piece;
+        }
+
+        if self.next_piece.is_none() && self.current_piece.position_y > 8 {
+            self.next_piece = Some(Piece::random());
         }
 
         false
@@ -206,6 +206,12 @@ fn render_piece(piece: &Piece, display: &mut impl Display) {
             }
         }
     }
+}
+
+pub enum PieceEvent {
+    Drop,
+    MoveBy(i16, i16),
+    Rotate(Rotation),
 }
 
 #[derive(Debug, Clone, Copy)]
