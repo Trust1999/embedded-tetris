@@ -23,9 +23,9 @@ pub struct InGameState {
 impl GameState {
     pub fn update(self, button_actions: &[ButtonAction], time: &Time) -> Self {
         match self {
-            GameState::StartMenu => todo!(),
+            GameState::StartMenu => GameState::StartMenu,
             GameState::InGame(state) => state.update(button_actions, time),
-            GameState::GameOverMenu => todo!(),
+            GameState::GameOverMenu => GameState::GameOverMenu,
         }
     }
 }
@@ -85,7 +85,7 @@ impl InGameState {
             log::info!("Gained {points} points");
 
             // Check if game is over
-            let game_over = !self.blocks.rows().take(8).all(|row| row == 0x00);
+            let game_over = self.blocks.data[7] != 0x00;
             if game_over {
                 return true;
             }
@@ -109,7 +109,7 @@ struct Blocks {
 
 impl Blocks {
     fn get(&self, x: i16, y: i16) -> bool {
-        if x < 0 || x >= DISPLAY_WIDTH as i16 || y < 0 || y >= DISPLAY_HEIGHT as i16 {
+        if self.is_invalid_position(x, y) {
             return true;
         }
 
@@ -118,7 +118,7 @@ impl Blocks {
     }
 
     fn set(&mut self, x: i16, y: i16) {
-        if x < 0 || x >= DISPLAY_WIDTH as i16 || y < 0 || y >= DISPLAY_HEIGHT as i16 {
+        if self.is_invalid_position(x, y) {
             return;
         }
 
@@ -163,13 +163,17 @@ impl Blocks {
 
         rows_removed
     }
+
+    fn is_invalid_position(&self, x: i16, y: i16) -> bool {
+        x < 0 || x >= DISPLAY_WIDTH as i16 || y < 0 || y >= DISPLAY_HEIGHT as i16
+    }
 }
 
 pub fn render(game_state: &GameState, display: &mut impl Display) {
     match game_state {
-        GameState::StartMenu => todo!(),
+        GameState::StartMenu => display.fill(false),
         GameState::InGame(state) => render_in_game(state, display),
-        GameState::GameOverMenu => todo!(),
+        GameState::GameOverMenu => display.fill(true),
     }
 }
 
