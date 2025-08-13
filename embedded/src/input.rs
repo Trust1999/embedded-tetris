@@ -68,7 +68,7 @@ pub fn gpio_06() {
     let mut last_press = LAST_PRESS_3.lock().unwrap();
 
     if now.duration_since(*last_press) >= Duration::from_millis(200) {
-        ACTION_QUEUE.push(ButtonAction::MoveDown);
+        // ACTION_QUEUE.push(ButtonAction::MoveDown);
         *last_press = now;
     }
 }

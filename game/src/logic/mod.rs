@@ -113,7 +113,10 @@ struct Blocks {
 
 impl Blocks {
     fn get(&self, x: i16, y: i16) -> bool {
-        if self.is_invalid_position(x, y) {
+        if x < 0 || x >= DISPLAY_WIDTH as i16 {
+            return false;
+        }
+        if y < 0 || y >= DISPLAY_HEIGHT as i16 {
             return true;
         }
 
@@ -122,7 +125,7 @@ impl Blocks {
     }
 
     fn set(&mut self, x: i16, y: i16) {
-        if self.is_invalid_position(x, y) {
+        if x < 0 || x >= DISPLAY_WIDTH as i16 || y < 0 || y >= DISPLAY_HEIGHT as i16 {
             return;
         }
 
@@ -133,12 +136,12 @@ impl Blocks {
     fn intersects(&self, piece: &Piece) -> bool {
         piece
             .block_positions()
-            .any(|(x, y)| self.get(x as i16, y as i16))
+            .any(|(x, y)| self.get((x % 8) as i16, y as i16))
     }
 
     fn place_piece(&mut self, piece: &Piece) {
         for (x, y) in piece.block_positions() {
-            self.set(x as i16, y as i16);
+            self.set((x % 8) as i16, y as i16);
         }
     }
 
@@ -166,10 +169,6 @@ impl Blocks {
         }
 
         removed
-    }
-
-    fn is_invalid_position(&self, x: i16, y: i16) -> bool {
-        x < 0 || x >= DISPLAY_WIDTH as i16 || y < 0 || y >= DISPLAY_HEIGHT as i16
     }
 }
 
@@ -202,9 +201,7 @@ fn render_in_game(state: &InGameState, display: &mut impl Display) {
 
 fn render_piece(piece: &Piece, display: &mut impl Display) {
     for (x, y) in piece.block_positions() {
-        if (0..DISPLAY_WIDTH as i16).contains(&x) && (0..DISPLAY_HEIGHT as i16).contains(&y) {
-            display.set_pixel(x as u8, y as u8, true);
-        }
+        display.set_pixel((x % 8) as u8, y as u8, true);
     }
 }
 
