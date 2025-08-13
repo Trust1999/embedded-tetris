@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use esp_idf_svc::nvs::{EspNvs, NvsDefault};
+use serde::{Deserialize, Serialize};
 
 const MAX_HIGHSCORES: usize = 10;
 pub const NVS_NAMESPACE: &str = "highscores";
@@ -25,7 +25,10 @@ impl Highscores {
     }
 }
 
-pub fn save_highscores(nvs: &mut EspNvs<NvsDefault>, highscores: &Highscores) -> Result<(), anyhow::Error> {
+pub fn save_highscores(
+    nvs: &mut EspNvs<NvsDefault>,
+    highscores: &Highscores,
+) -> Result<(), anyhow::Error> {
     // Serializes the highscores structure (now just a list of numbers) into a JSON string
     let serialized_scores = serde_json::to_string(highscores)?;
     nvs.set_str(NVS_KEY, &serialized_scores)?;
@@ -34,7 +37,7 @@ pub fn save_highscores(nvs: &mut EspNvs<NvsDefault>, highscores: &Highscores) ->
 
 pub fn load_highscores(nvs: &mut EspNvs<NvsDefault>) -> Result<Highscores, anyhow::Error> {
     // Reads the JSON string and attempts to deserialize it
-    if let Some(serialized_scores) =  nvs.get_str(NVS_KEY, &mut [0u8; 255])? {
+    if let Some(serialized_scores) = nvs.get_str(NVS_KEY, &mut [0u8; 255])? {
         let highscores: Highscores = serde_json::from_str(&serialized_scores)?;
         Ok(highscores)
     } else {

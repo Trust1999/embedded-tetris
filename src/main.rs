@@ -18,7 +18,6 @@ mod highscore;
 use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
 
 mod website;
-use crate::game::ButtonAction;
 use website::WifiServer;
 
 mod input;

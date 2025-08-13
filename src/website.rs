@@ -1,12 +1,12 @@
-use std::sync::{Arc, Mutex};
+use crate::highscore::Highscores;
+use anyhow::Result;
+use esp_idf_hal::io::Write;
+use esp_idf_hal::modem::Modem;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::http::server::{Configuration, EspHttpServer};
 use esp_idf_svc::nvs::EspNvsPartition;
 use esp_idf_svc::wifi::{AuthMethod, BlockingWifi, EspWifi};
-use anyhow::Result;
-use esp_idf_hal::io::Write;
-use esp_idf_hal::modem::Modem;
-use crate::highscore::Highscores;
+use std::sync::{Arc, Mutex};
 
 // Configuration for the WLAN access point
 const SSID: &str = "ESP32-Tetris";
@@ -35,10 +35,8 @@ impl<'a> WifiServer<'a> {
         let sys_loop = EspSystemEventLoop::take()?;
 
         // Initialize WLAN driver (with modem and NVS)
-        let mut wifi = BlockingWifi::wrap(
-            EspWifi::new(modem, sys_loop.clone(), Some(nvs))?,
-            sys_loop,
-        )?;
+        let mut wifi =
+            BlockingWifi::wrap(EspWifi::new(modem, sys_loop.clone(), Some(nvs))?, sys_loop)?;
 
         // Configure WLAN as an access point
         wifi.set_configuration(&esp_idf_svc::wifi::Configuration::AccessPoint(
@@ -58,22 +56,30 @@ impl<'a> WifiServer<'a> {
 
         // Wait until the network interface is fully ready
         wifi.wait_netif_up()?;
-        log::info!("Access Point '{}' ist aktiv. Verbinden Sie sich und öffnen Sie http://{}/", SSID, ip_info.ip);
+        log::info!(
+            "Access Point '{}' ist aktiv. Verbinden Sie sich und öffnen Sie http://{}/",
+            SSID,
+            ip_info.ip
+        );
 
         // Start HTTP server (default configuration)
         let mut server = EspHttpServer::new(&Configuration::default())?;
 
         // Register a handler for the main page
-        server.fn_handler("/", esp_idf_svc::http::Method::Get, move |request| -> Result<(), Box<dyn std::error::Error>> {
-            // Access to the high scores (thread-safe)
-            let highscores_lock = highscores.lock().unwrap();
-            // Generate HTML page
-            let html_response = generate_html(&highscores_lock);
-            // Write reply
-            let mut response = request.into_ok_response()?;
-            response.write_all(html_response.as_bytes())?;
-            Ok(())
-        })?;
+        server.fn_handler(
+            "/",
+            esp_idf_svc::http::Method::Get,
+            move |request| -> Result<(), Box<dyn std::error::Error>> {
+                // Access to the high scores (thread-safe)
+                let highscores_lock = highscores.lock().unwrap();
+                // Generate HTML page
+                let html_response = generate_html(&highscores_lock);
+                // Write reply
+                let mut response = request.into_ok_response()?;
+                response.write_all(html_response.as_bytes())?;
+                Ok(())
+            },
+        )?;
 
         // Return the structure containing both the wifi driver and the server.
         Ok(Self {
@@ -82,7 +88,6 @@ impl<'a> WifiServer<'a> {
         })
     }
 }
-
 
 /// Generates the HTML code for the highscore page.
 ///
