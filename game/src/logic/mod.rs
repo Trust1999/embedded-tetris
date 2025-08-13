@@ -130,10 +130,6 @@ impl Blocks {
         self.data[y as usize] |= mask;
     }
 
-    fn rows(&self) -> impl Iterator<Item = u8> {
-        self.data.into_iter()
-    }
-
     fn intersects(&self, piece: &Piece) -> bool {
         piece
             .block_positions()
@@ -148,26 +144,28 @@ impl Blocks {
 
     /// Returns how many rows were removed
     fn remove_full_rows(&mut self) -> u32 {
-        let mut rows_removed = 0;
+        let mut removed = 0;
+        let height = self.data.len();
 
-        for (y, row) in self.data.into_iter().enumerate() {
-            // Skip rows that are not filled
-            if row != 0xff {
-                continue;
+        // Start from the bottom row and work upward
+        let mut y = height as isize - 1;
+        while y >= 0 {
+            if self.data[y as usize] == 0xff {
+                removed += 1;
+
+                // Shift all rows above down by one
+                for row in (1..=y as usize).rev() {
+                    self.data[row] = self.data[row - 1];
+                }
+                self.data[0] = 0x00;
+
+                // Stay on same y index to check the shifted row
+            } else {
+                y -= 1;
             }
-
-            // Move all blocks above it down by one
-            for i in y..0 {
-                self.data[i] = self.data[i - 1];
-            }
-
-            // Clear first row
-            self.data[0] = 0xff;
-
-            rows_removed += 1;
         }
 
-        rows_removed
+        removed
     }
 
     fn is_invalid_position(&self, x: i16, y: i16) -> bool {
