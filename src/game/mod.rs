@@ -15,6 +15,7 @@ pub enum GameState {
 
 pub struct InGameState {
     blocks: Blocks,
+    collision_piece: Piece,
     current_piece: Piece,
     next_piece: Option<Piece>,
     time_last_move: u64,
@@ -32,11 +33,13 @@ impl GameState {
 
 impl InGameState {
     pub fn new() -> Self {
+        let current_piece = Piece::random();
         Self {
             blocks: Blocks {
                 data: [0; DISPLAY_HEIGHT as usize],
             },
-            current_piece: Piece::random(),
+            collision_piece: current_piece.clone(),
+            current_piece,
             next_piece: None,
             time_last_move: 0,
         }
@@ -45,10 +48,10 @@ impl InGameState {
     fn update(mut self, button_actions: &[ButtonAction], time: &Time) -> GameState {
         for button_action in button_actions {
             match button_action {
-                ButtonAction::MoveLeft => self.current_piece.move_by(-1, 0),
-                ButtonAction::MoveRight => self.current_piece.move_by(1, 0),
+                ButtonAction::MoveLeft => self.collision_piece.move_by(-1, 0),
+                ButtonAction::MoveRight => self.collision_piece.move_by(1, 0),
                 ButtonAction::MoveDown => todo!(),
-                ButtonAction::Rotate => self.current_piece.rotate(Rotation::Deg90),
+                ButtonAction::Rotate => self.collision_piece.rotate(Rotation::Deg90),
             }
 
             if self.update_blocks() {
@@ -58,7 +61,7 @@ impl InGameState {
 
         if (time.now_ms() - self.time_last_move) >= 250 {
             self.time_last_move = time.now_ms();
-            self.current_piece.move_by(0, 1);
+            self.collision_piece.move_by(0, 1);
 
             if self.update_blocks() {
                 return GameState::GameOverMenu;
@@ -75,7 +78,7 @@ impl InGameState {
     /// Returns whether the game is over
     fn update_blocks(&mut self) -> bool {
         // Collissions with floor, walls and existing blocks
-        let will_intersect = self.blocks.intersects(&self.current_piece);
+        let will_intersect = self.blocks.intersects(&self.collision_piece);
         if will_intersect {
             // Place piece on top of existing blocks
             self.blocks.place_piece(&self.current_piece);
@@ -91,6 +94,9 @@ impl InGameState {
             }
 
             self.current_piece = self.next_piece.take().unwrap();
+            self.collision_piece = self.current_piece.clone();
+        } else {
+            self.current_piece = self.collision_piece.clone();
         }
 
         false
