@@ -1,3 +1,4 @@
+use esp_hal;
 use esp_idf_hal::gpio::{InputPin, OutputPin, Pin};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
@@ -44,6 +45,8 @@ fn main() -> anyhow::Result<()> {
     let server_highscores = Arc::clone(&highscores);
     let _wifi_server =
         WifiServer::new(peripherals.modem, partition.clone(), server_highscores).unwrap();
+
+    let dma_channel = peripherals.DMA_SPI2;
 
     let mut display = {
         // Initialize SPI2

@@ -1,27 +1,27 @@
 # Embedded Tetris
 
-Simple overview of use/purpose.
+### Autoren
+
+* Nika Sommer
+* Anton Unger
+
+### Datum
+
+13.08.2025
 
 ## Einleitung
 
-An in-depth paragraph about your project and overview of use.
+### Motivation und Problemstellung
+
+### Ziele des Projektes
+
+### Relevanz und Anwendungsgebiet
 
 ## Teschnischer Hintergrund
 
-### Dependencies
+### Relevante Technologien
 
-* Describe any prerequisites, libraries, OS version, etc., needed before installing program.
-* ex. Windows 10
-
-### Installing
-
-* How/where to download your program
-* Any modifications needed to be made to files/folders
-
-### Executing program
-
-* How to run the program
-* Step-by-step bullets
+### Verwendete Frameworks, Hardware, Protokolle
 
 ```
 code blocks for commands
@@ -29,7 +29,13 @@ code blocks for commands
 
 ## Projektidee und Anforderung
 
-Any advise for common problems or issues.
+### Kurze Beschreibung des Konzepts
+
+### Zielgruppe/User
+
+### Funktionale und Nicht-Funktionale Anforderungen
+
+### Erste Skizzen und Diagramme
 
 ```
 command to run if program contains helper info
@@ -37,19 +43,42 @@ command to run if program contains helper info
 
 ## Architektur und Umsetztung
 
-Contributors names and contact info
+### Übersicht der Systemarchitektur
 
-ex. Dominique Pizzie  
-ex. [@DomPizzie](https://twitter.com/dompizzie)
+### Modulaufbau / Komponenten
+
+### Wichtige Schnittstellen
+
+### Begründung von Entscheidungen
 
 ## Implementierung
 
+### Beschreibung zentraler Programmteil
+
+### Eingesetzte Tools und Sprachen
+
 ## Tests und Ergebnisse
 
-This project is licensed under the [NAME HERE] License - see the LICENSE.md file for details
+### Was getestet
+
+### Ergebnisse
 
 ## Fazit und Ausblick
 
+### Was lief gut, was war schwierig?
+
+### Erfüllung der Ziele
+
+### Lessons Learnd
+
+### Ideen für Weiterentwicklung
+
 ## Resportery-Überblick
+
+### Aufbau des Repo
+
+### Setup Anleitung
+
+### Beispiel zur Nutzung
 
 ## Lizens und Danksagungen
