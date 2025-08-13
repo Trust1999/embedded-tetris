@@ -31,13 +31,13 @@ impl<'d> Time<'d> {
         self.last_ms = self.current_ms;
         self.current_ms = self.timer.counter()? / 10;
 
-        log::debug!("time = {}s", self.time_ms() / 1000);
+        log::debug!("time = {}s", self.now_ms() / 1000);
         log::debug!("delta time = {}ms", self.delta_time_ms());
 
         Ok(())
     }
 
-    pub fn time_ms(&self) -> u64 {
+    pub fn now_ms(&self) -> u64 {
         self.current_ms
     }
 

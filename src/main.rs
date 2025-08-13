@@ -1,4 +1,3 @@
-use std::time::{Duration, Instant};
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::gpio::{self, PinDriver, Pull};
 use std::sync::{Arc, Mutex};
@@ -6,26 +5,27 @@ use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
 
+
 mod time;
 use time::Time;
 
 mod game;
-use game::{render, GameState, InGameState};
+use game::{ButtonAction, GameState, InGameState, render};
 
 mod display;
 use display::Max72xx;
 
 mod highscore;
-use highscore::{load_highscores, save_highscores, Highscores, NVS_NAMESPACE};
+use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
 
 mod website;
 use website::WifiServer;
 
 mod input;
-use crate::input::{gpio_04, gpio_05, gpio_06, gpio_07, BUTTON1, BUTTON2, BUTTON3, BUTTON4};
+use crate::input::{gpio_04, gpio_05, gpio_06, gpio_07, ACTION_QUEUE, BUTTON1, BUTTON2, BUTTON3, BUTTON4};
 
-const DISPLAY_WIDTH: usize = 8;
-const DISPLAY_HEIGHT: usize = 8 * 4;
+const DISPLAY_WIDTH: u8 = 8;
+const DISPLAY_HEIGHT: u8 = 8 * 4;
 
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -70,10 +70,14 @@ fn main() -> anyhow::Result<()> {
     // Enable an internal pull-up resistor on GPIO4
     button1.set_pull(Pull::Up).unwrap();
     // Set the interrupt to trigger on a positive edge (low → high transition)
-    button1.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    button1
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_04` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button1.subscribe(gpio_04).unwrap(); }
+    unsafe {
+        button1.subscribe(gpio_04).unwrap();
+    }
     // Enable interrupts for this pin
     button1.enable_interrupt().unwrap();
     *BUTTON1.lock().unwrap() = Some(button1);
@@ -83,10 +87,14 @@ fn main() -> anyhow::Result<()> {
     // Enable an internal pull-up resistor on GPIO5
     button2.set_pull(Pull::Up).unwrap();
     // Set the interrupt to trigger on a positive edge (low → high transition)
-    button2.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    button2
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_05` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button2.subscribe(gpio_05).unwrap(); }
+    unsafe {
+        button2.subscribe(gpio_05).unwrap();
+    }
     // Enable interrupts for this pin
     button2.enable_interrupt().unwrap();
     *BUTTON2.lock().unwrap() = Some(button2);
@@ -96,10 +104,14 @@ fn main() -> anyhow::Result<()> {
     // Enable an internal pull-up resistor on GPIO6
     button3.set_pull(Pull::Up).unwrap();
     // Set the interrupt to trigger on a positive edge (low → high transition)
-    button3.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    button3
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_06` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button3.subscribe(gpio_06).unwrap(); }
+    unsafe {
+        button3.subscribe(gpio_06).unwrap();
+    }
     // Enable interrupts for this pin
     button3.enable_interrupt().unwrap();
     *BUTTON3.lock().unwrap() = Some(button3);
@@ -109,10 +121,14 @@ fn main() -> anyhow::Result<()> {
     // Enable an internal pull-up resistor on GPIO7
     button4.set_pull(Pull::Up).unwrap();
     // Set the interrupt to trigger on a positive edge (low → high transition)
-    button4.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
+    button4
+        .set_interrupt_type(gpio::InterruptType::PosEdge)
+        .unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_07` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button4.subscribe(gpio_07).unwrap(); }
+    unsafe {
+        button4.subscribe(gpio_07).unwrap();
+    }
     // Enable interrupts for this pin
     button4.enable_interrupt().unwrap();
     *BUTTON4.lock().unwrap() = Some(button4);
@@ -122,10 +138,19 @@ fn main() -> anyhow::Result<()> {
 
     let mut game_state = GameState::InGame(InGameState::new());
 
+    println!("{:?}", highscore);
+
     loop {
         time.update()?;
 
-        game_state = game_state.update(&time);
+        let button_actions = ACTION_QUEUE
+            .lock()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
+
+        game_state = game_state.update(&button_actions, &time);
 
         render(&game_state, &mut display);
 
