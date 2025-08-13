@@ -1,9 +1,5 @@
 use rand::Rng;
 
-const MAX_WIDTH: usize = 4;
-const MAX_HEIGHT: usize = 4;
-const MAX_SIZE: usize = MAX_WIDTH * MAX_HEIGHT;
-
 #[derive(Clone, Copy)]
 enum PieceKind {
     // ● ●
