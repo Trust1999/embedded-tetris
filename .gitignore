@@ -1,5 +1,2 @@
 /.vscode
-/.embuild
-/target
-/Cargo.lock
 .idea

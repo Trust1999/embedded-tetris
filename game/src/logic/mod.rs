@@ -1,11 +1,9 @@
-use crate::{
-    DISPLAY_HEIGHT, DISPLAY_WIDTH,
-    display::Display,
-    game::piece::{Piece, Rotation},
-    time::Time,
-};
+use crate::display::Display;
+use crate::time::Time;
+use crate::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
 mod piece;
+use piece::{Piece, Rotation};
 
 pub enum GameState {
     StartMenu,
@@ -21,7 +19,7 @@ pub struct InGameState {
 }
 
 impl GameState {
-    pub fn update(self, button_actions: &[ButtonAction], time: &Time) -> Self {
+    pub fn update(self, button_actions: &[ButtonAction], time: &impl Time) -> Self {
         match self {
             GameState::StartMenu => GameState::StartMenu,
             GameState::InGame(state) => state.update(button_actions, time),
@@ -42,7 +40,7 @@ impl InGameState {
         }
     }
 
-    fn update(mut self, button_actions: &[ButtonAction], time: &Time) -> GameState {
+    fn update(mut self, button_actions: &[ButtonAction], time: &impl Time) -> GameState {
         let piece_events = button_actions
             .iter()
             .map(|button_action| match button_action {

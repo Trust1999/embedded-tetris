@@ -1,16 +1,13 @@
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
+use esp_idf_hal::task::watchdog::TWDTDriver;
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
+use game::display::Max72xx;
+use game::logic::{GameState, InGameState};
 use std::sync::{Arc, Mutex};
 
 mod time;
 use time::Time;
-
-mod game;
-use game::{GameState, InGameState, render};
-
-mod display;
-use display::Max72xx;
 
 mod highscore;
 use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
@@ -19,10 +16,7 @@ mod website;
 use website::WifiServer;
 
 mod input;
-use crate::input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07, setup_button};
-
-const DISPLAY_WIDTH: u8 = 8;
-const DISPLAY_HEIGHT: u8 = 8 * 4;
+use input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07, setup_button};
 
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -90,10 +84,9 @@ fn main() -> anyhow::Result<()> {
         highscores_lock.add_score(score);
         save_highscores(&mut nvs, &highscores_lock)?;
         */
-
         game_state = game_state.update(&button_actions, &time);
 
-        render(&game_state, &mut display);
+        game::logic::render(&game_state, &mut display);
 
         display.transfer_bitmap()?;
     }

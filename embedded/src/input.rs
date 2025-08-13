@@ -1,7 +1,7 @@
-use crate::game::ButtonAction;
 use esp_idf_hal::gpio;
 use esp_idf_hal::gpio::{Input, InputPin, OutputPin, Pin, PinDriver, Pull};
 use esp_idf_hal::peripheral::Peripheral;
+use game::logic::ButtonAction;
 use lockfree::queue::Queue;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
