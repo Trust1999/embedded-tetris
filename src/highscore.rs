@@ -26,14 +26,14 @@ impl Highscores {
 }
 
 pub fn save_highscores(nvs: &mut EspNvs<NvsDefault>, highscores: &Highscores) -> Result<(), anyhow::Error> {
-    // Serialisiert die Highscores-Struktur (jetzt nur eine Liste von Zahlen) in einen JSON-String
+    // Serializes the highscores structure (now just a list of numbers) into a JSON string
     let serialized_scores = serde_json::to_string(highscores)?;
     nvs.set_str(NVS_KEY, &serialized_scores)?;
     Ok(())
 }
 
 pub fn load_highscores(nvs: &mut EspNvs<NvsDefault>) -> Result<Highscores, anyhow::Error> {
-    // Liest den JSON-String und versucht, ihn zu deserialisieren
+    // Reads the JSON string and attempts to deserialize it
     if let Some(serialized_scores) =  nvs.get_str(NVS_KEY, &mut [0u8; 255])? {
         let highscores: Highscores = serde_json::from_str(&serialized_scores)?;
         Ok(highscores)

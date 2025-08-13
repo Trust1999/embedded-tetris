@@ -1,41 +1,28 @@
 use std::time::{Duration, Instant};
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::gpio::{self, PinDriver, Pull};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use esp_idf_hal::peripherals::Peripherals;
-use heapless::spsc::Queue;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
-use std::sync::LazyLock;
 
 mod time;
 use time::Time;
 
 mod game;
-use game::{render, GameState, InGameState, ButtonAction};
+use game::{render, GameState, InGameState};
 
 mod display;
 use display::Max72xx;
 
 mod highscore;
+use highscore::{load_highscores, save_highscores, Highscores, NVS_NAMESPACE};
+
 mod website;
+use website::WifiServer;
 
-use highscore::{load_highscores,save_highscores, Highscores, NVS_NAMESPACE};
-
-//queue to save button inputs
-static ACTION_QUEUE: LazyLock<Mutex<Queue<ButtonAction, 100>>> = LazyLock::new(|| Mutex::new(Queue::new()));
-
-//to save button
-static BUTTON1: LazyLock<Mutex<Option<PinDriver<'static, Gpio4, Input>>>> = LazyLock::new(|| Mutex::new(None));
-static BUTTON2: LazyLock<Mutex<Option<PinDriver<'static, Gpio5, Input>>>> = LazyLock::new(|| Mutex::new(None));
-static BUTTON3: LazyLock<Mutex<Option<PinDriver<'static, Gpio6, Input>>>> = LazyLock::new(|| Mutex::new(None));
-static BUTTON4: LazyLock<Mutex<Option<PinDriver<'static, Gpio7, Input>>>> = LazyLock::new(|| Mutex::new(None));
-
-// Debounce-time, initial to 1 second into the past
-static LAST_PRESS_1: LazyLock<Mutex<Instant>> = LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_2: LazyLock<Mutex<Instant>> = LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_3: LazyLock<Mutex<Instant>> = LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
-static LAST_PRESS_4: LazyLock<Mutex<Instant>> = LazyLock::new(|| Mutex::new(Instant::now() - Duration::from_secs(1)));
+mod input;
+use crate::input::{gpio_04, gpio_05, gpio_06, gpio_07, BUTTON1, BUTTON2, BUTTON3, BUTTON4};
 
 const DISPLAY_WIDTH: usize = 8;
 const DISPLAY_HEIGHT: usize = 8 * 4;
@@ -48,7 +35,17 @@ fn main() -> anyhow::Result<()> {
     // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    let peripherals = Peripherals::take().unwrap();
+    let mut peripherals = Peripherals::take().unwrap();
+
+    // NVS-Partition für die WLAN-Konfiguration
+    let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
+    let mut nvs = EspNvs::new(partition.clone(), NVS_NAMESPACE, true).unwrap();
+    let highscore = Arc::new(Mutex::new(
+        load_highscores(&mut nvs).unwrap()
+    ));
+
+    let server_highscores = Arc::clone(&highscore);
+    let _wifi_server = WifiServer::new(peripherals.modem, partition, server_highscores).unwrap();
 
     let mut display = {
         // Initialize SPI2
@@ -76,7 +73,7 @@ fn main() -> anyhow::Result<()> {
     button1.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_04` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button1.subscribe(gipo_04).unwrap(); }
+    unsafe { button1.subscribe(gpio_04).unwrap(); }
     // Enable interrupts for this pin
     button1.enable_interrupt().unwrap();
     *BUTTON1.lock().unwrap() = Some(button1);
@@ -89,7 +86,7 @@ fn main() -> anyhow::Result<()> {
     button2.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_05` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button2.subscribe(gipo_05).unwrap(); }
+    unsafe { button2.subscribe(gpio_05).unwrap(); }
     // Enable interrupts for this pin
     button2.enable_interrupt().unwrap();
     *BUTTON2.lock().unwrap() = Some(button2);
@@ -102,7 +99,7 @@ fn main() -> anyhow::Result<()> {
     button3.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_06` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button3.subscribe(gipo_06).unwrap(); }
+    unsafe { button3.subscribe(gpio_06).unwrap(); }
     // Enable interrupts for this pin
     button3.enable_interrupt().unwrap();
     *BUTTON3.lock().unwrap() = Some(button3);
@@ -115,13 +112,10 @@ fn main() -> anyhow::Result<()> {
     button4.set_interrupt_type(gpio::InterruptType::PosEdge).unwrap();
     // Subscribe the GPIO4 interrupt to call the function `gipo_07` when triggered
     // `unsafe` is needed because we are passing a raw function pointer
-    unsafe { button4.subscribe(gipo_07).unwrap(); }
+    unsafe { button4.subscribe(gpio_07).unwrap(); }
     // Enable interrupts for this pin
     button4.enable_interrupt().unwrap();
     *BUTTON4.lock().unwrap() = Some(button4);
-
-    let mut nvs = set_flash();
-    let mut highscore = load_highscores(&mut nvs).unwrap();
 
     let mut time = Time::setup(peripherals.timer00)?;
     time.start()?;
@@ -137,84 +131,5 @@ fn main() -> anyhow::Result<()> {
 
         display.transfer_bitmap()?;
     }
-}
-
-// Debounce + Queue Push for Button 1 (MoveLeft)
-fn gipo_04() {
-    let now = Instant::now();
-    let mut last_press = LAST_PRESS_1.lock().unwrap();
-
-    if now.duration_since(*last_press) >= Duration::from_millis(100) {
-        if let Ok(mut queue) = ACTION_QUEUE.lock() {
-            let _ = queue.enqueue(ButtonAction::MoveLeft);
-        }
-        *last_press = now;
-    }
-
-    if let Ok(mut maybe_button) = BUTTON1.lock() {
-        if let Some(button) = maybe_button.as_mut() {
-            let _ = button.enable_interrupt();
-        }
-    }
-}
-
-// Debounce + Queue Push for Button 2 (MoveRight)
-fn gipo_05() {
-    let now = Instant::now();
-    let mut last_press = LAST_PRESS_2.lock().unwrap();
-
-    if now.duration_since(*last_press) >= Duration::from_millis(100) {
-        if let Ok(mut queue) = ACTION_QUEUE.lock() {
-            let _ = queue.enqueue(ButtonAction::MoveRight);
-        }
-        *last_press = now;
-    }
-    if let Ok(mut maybe_button) = BUTTON2.lock() {
-        if let Some(button) = maybe_button.as_mut() {
-            let _ = button.enable_interrupt();
-        }
-    }
-}
-
-// Debounce + Queue Push for Button 3 (MoveDown)
-fn gipo_06() {
-    let now = Instant::now();
-    let mut last_press = LAST_PRESS_3.lock().unwrap();
-
-    if now.duration_since(*last_press) >= Duration::from_millis(200) {
-        if let Ok(mut queue) = ACTION_QUEUE.lock() {
-            let _ = queue.enqueue(ButtonAction::MoveDown);
-        }
-        *last_press = now;
-    }
-    if let Ok(mut maybe_button) = BUTTON3.lock() {
-        if let Some(button) = maybe_button.as_mut() {
-            let _ = button.enable_interrupt();
-        }
-    }
-}
-
-// Debounce + Queue Push for Button 4 (Rotate)
-fn gipo_07() {
-    let now = Instant::now();
-    let mut last_press = LAST_PRESS_4.lock().unwrap();
-
-    if now.duration_since(*last_press) >= Duration::from_millis(100) {
-        if let Ok(mut queue) = ACTION_QUEUE.lock() {
-            let _ = queue.enqueue(ButtonAction::Rotate);
-        }
-        *last_press = now;
-    }
-    if let Ok(mut maybe_button) = BUTTON4.lock() {
-        if let Some(button) = maybe_button.as_mut() {
-            let _ = button.enable_interrupt();
-        }
-    }
-}
-
-fn set_flash() -> EspNvs<NvsDefault> {
-    //NVS initialization
-    let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
-    EspNvs::new(partition, NVS_NAMESPACE, true).unwrap()
 }
 
