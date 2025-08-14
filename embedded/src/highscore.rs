@@ -59,8 +59,7 @@ pub fn load_highscores(
 ) -> Result<Highscores, Box<dyn std::error::Error>> {
     // Reads the JSON string and attempts to deserialize it
     if let Some(serialized_scores) = nvs.get_str(NVS_KEY, &mut [0u8; 255])? {
-        let highscores: Highscores = Highscores::deserialize(&serialized_scores)?;
-        Ok(highscores)
+        Ok(Highscores::deserialize(&serialized_scores).unwrap_or(Highscores::new()))
     } else {
         Ok(Highscores::new())
     }

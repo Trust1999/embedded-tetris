@@ -30,7 +30,7 @@ pub struct InGameState {
 impl GameState {
     pub fn update(
         self,
-        button_actions: &[ButtonAction],
+        button_actions: Option<ButtonAction>,
         now: Instant,
         add_score: impl FnMut(u32),
     ) -> Self {
@@ -47,7 +47,7 @@ impl GameState {
             }
             GameState::InGame(state) => state.update(button_actions, now, add_score),
             GameState::GameOver(score) => {
-                if button_actions.is_empty() {
+                if button_actions.is_none() {
                     GameState::GameOver(score)
                 } else {
                     GameState::StartMenu(InStartState::Text)
@@ -72,18 +72,18 @@ impl InGameState {
 
     fn update(
         mut self,
-        button_actions: &[ButtonAction],
+        button_action: Option<ButtonAction>,
         now: Instant,
         mut add_score: impl FnMut(u32),
     ) -> GameState {
-        let piece_events = button_actions
-            .iter()
+        let piece_events = button_action
             .map(|button_action| match button_action {
                 ButtonAction::MoveLeft => PieceEvent::MoveBy(-1, 0),
                 ButtonAction::MoveRight => PieceEvent::MoveBy(1, 0),
                 ButtonAction::MoveDown => PieceEvent::Drop,
                 ButtonAction::Rotate => PieceEvent::Rotate(Rotation::Deg90),
             })
+            .into_iter()
             .chain({
                 let should_move =
                     (now.duration_since(self.time_last_move)) >= Duration::from_millis(500);
