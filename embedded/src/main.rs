@@ -12,14 +12,13 @@ mod time;
 use time::Time;
 
 mod highscore;
-use highscore::{Highscores, NVS_NAMESPACE, load_highscores, save_highscores};
+use highscore::{load_highscores, save_highscores, Highscores, NVS_NAMESPACE};
 
 mod website;
 use website::WifiServer;
 
 mod input;
-use input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07, setup_button};
-
+use input::{gpio_04, gpio_05, gpio_06, gpio_07, setup_button, ACTION_QUEUE};
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71

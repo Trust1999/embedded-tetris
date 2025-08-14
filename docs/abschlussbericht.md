@@ -107,7 +107,28 @@ Die Zielgruppe des Projekts umfasst:
 
 ### Funktionale und Nicht-Funktionale Anforderungen
 
+Für die funktionalen Anforderungen soll das System folgendes implementieren:
+
+* Spielsteuerung: Die Blöcke müssen über Tasten bewegt (links/rechts), gedreht und nach unten fallen gelassen werden
+  können.
+* Anzeige: Das Spielfeld wird in Echtzeit auf dem LED-Display dargestellt.
+* Spielmechanik: Linien werden erkannt und gelöscht, Punkte werden gezählt, das Spiel endet bei voller Füllung des
+  Spielfeldes.
+
+Für die Nicht-Funktionale Anforderungen gilt Folgendes:
+
+* Zuverlässigkeit: Das System soll stabil laufen und Abstürze vermeiden.
+* Reaktionszeit: Eingaben sollen innerhalb von Millisekunden umgesetzt werden.
+* Benutzerfreundlichkeit: Die Steuerung soll intuitiv sein, auch für Personen ohne technische Vorkenntnisse.
+* Wartbarkeit: Der Code soll modular und gut dokumentiert sein, um Erweiterungen oder Fehlerbehebungen zu erleichtern.
+
 ### Erste Skizzen und Diagramme
+
+#### Schaltplan
+
+![Schaltplan](../assets/Schaltplan.png)
+
+#### Klassendiagramm
 
 ## Architektur und Umsetzung
 
