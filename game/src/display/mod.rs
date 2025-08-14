@@ -4,6 +4,8 @@ pub use ma72xx::Max72xx;
 mod text;
 pub use text::TextDisplay;
 
+pub mod render;
+
 pub trait Display: Sized {
     fn fill(&mut self, value: bool);
 

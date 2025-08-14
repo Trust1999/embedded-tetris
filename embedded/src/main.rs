@@ -1,16 +1,15 @@
-use esp_idf_hal::gpio::{InputPin, OutputPin, Pin};
-use esp_idf_hal::peripheral::Peripheral;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
 use game::display::Max72xx;
-use game::logic::{ButtonAction, GameState, InGameState, render, InStartState};
+use game::display::render::render;
+use game::logic::{ButtonAction, GameState, InGameState, InStartState};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 pub mod highscore;
-use highscore::{load_highscores, save_highscores, NVS_NAMESPACE};
+use highscore::{NVS_NAMESPACE, load_highscores, save_highscores};
 
 mod website;
 use website::WifiServer;
@@ -73,7 +72,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut last_interaction = Instant::now() - Duration::from_millis(1000);
     let mut button_action = None;
+
     GameState::StartMenu(InStartState::Text);
+
     loop {
         // Collect input
         button1.enable_interrupt()?;
