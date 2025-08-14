@@ -7,7 +7,7 @@ edition = "2024"
 opt-level = "s"
 
 [profile.dev]
-debug = true    # Symbols are nice and they don't increase the size on Flash
+debug = true
 opt-level = "z"
 
 [[bin]]
@@ -19,9 +19,7 @@ game = { path = "../game" }
 log = "0.4"
 esp-idf-svc = "0.51"
 esp-idf-hal = "0.45.2"
-anyhow = "1.0.98"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.142"
+esp-idf-sys = { version = "0.36.1", features = ["binstart"] }
 lockfree = "0.5.1"
 
 # --- Optional Embassy Integration ---

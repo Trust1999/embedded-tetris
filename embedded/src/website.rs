@@ -1,5 +1,4 @@
 use crate::highscore::Highscores;
-use anyhow::Result;
 use esp_idf_hal::io::Write;
 use esp_idf_hal::modem::Modem;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
@@ -30,7 +29,7 @@ impl<'a> WifiServer<'a> {
         modem: Modem,
         nvs: EspNvsPartition<esp_idf_svc::nvs::NvsDefault>,
         highscores: Arc<Mutex<Highscores>>,
-    ) -> Result<Self> {
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         // Get system event loop (only possible once per program)
         let sys_loop = EspSystemEventLoop::take()?;
 
@@ -113,6 +112,7 @@ fn generate_html(highscores: &Highscores) -> String {
         <html>
         <head>
             <meta charset="utf-8">
+            <meta name='viewport' content='width=device-width, initial-scale=1'>
             <title>ESP32 Tetris Highscores</title>
             <style>
                 body {{ font-family: Arial, sans-serif; background-color: #282c34; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }}

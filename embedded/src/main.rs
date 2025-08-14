@@ -2,24 +2,22 @@ use esp_idf_hal::gpio::{InputPin, OutputPin, Pin};
 use esp_idf_hal::peripheral::Peripheral;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
-use esp_idf_hal::task::watchdog::TWDTDriver;
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
 use game::display::Max72xx;
 use game::logic::{GameState, InGameState};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
-mod time;
-use time::Time;
-
-mod highscore;
-use highscore::{load_highscores, save_highscores, Highscores, NVS_NAMESPACE};
+pub mod highscore;
+use highscore::{NVS_NAMESPACE, load_highscores, save_highscores};
 
 mod website;
 use website::WifiServer;
 
 mod input;
-use input::{gpio_04, gpio_05, gpio_06, gpio_07, setup_button, ACTION_QUEUE};
-fn main() -> anyhow::Result<()> {
+use input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07, setup_button};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_svc::sys::link_patches();
@@ -33,11 +31,13 @@ fn main() -> anyhow::Result<()> {
     let partition = EspNvsPartition::<NvsDefault>::take().unwrap();
     let mut nvs = EspNvs::new(partition.clone(), NVS_NAMESPACE, true).unwrap();
 
-    //Webserver initialization with score from memory
-    let highscores = Arc::new(Mutex::new(load_highscores(&mut nvs).unwrap()));
-    let server_highscores = Arc::clone(&highscores);
-    let _wifi_server =
-        WifiServer::new(peripherals.modem, partition.clone(), server_highscores).unwrap();
+    // Webserver initialization with score from memory
+    let highscores = Arc::new(Mutex::new(load_highscores(&mut nvs)?));
+    let _wifi_server = WifiServer::new(
+        peripherals.modem,
+        partition.clone(),
+        Arc::clone(&highscores),
+    )?;
 
     let mut display = {
         // Initialize SPI2
@@ -62,12 +62,11 @@ fn main() -> anyhow::Result<()> {
     let mut button3 = setup_button(peripherals.pins.gpio6, gpio_06);
     let mut button4 = setup_button(peripherals.pins.gpio7, gpio_07);
 
-    let mut time = Time::setup(peripherals.timer00)?;
-    time.start()?;
-
     let mut game_state = GameState::InGame(InGameState::new());
 
     println!("{:?}", highscores);
+
+    while highscores.try_lock().is_err() {}
 
     loop {
         button1.enable_interrupt()?;
@@ -75,18 +74,15 @@ fn main() -> anyhow::Result<()> {
         button3.enable_interrupt()?;
         button4.enable_interrupt()?;
 
-        time.update()?;
-
         let button_actions = ACTION_QUEUE.pop_iter().collect::<Vec<_>>();
 
-        /*
-        to save a highscore
-        let mut highscores_lock = highscores.lock().unwrap();
-        highscores_lock.add_score(score);
-        save_highscores(&mut nvs, &highscores_lock)?;
-        */
-
-        game_state = game_state.update(&button_actions, &time);
+        {
+            let mut highscores = highscores.lock().unwrap();
+            game_state = game_state.update(&button_actions, Instant::now(), |score| {
+                highscores.add_score(score)
+            });
+            save_highscores(&mut nvs, &highscores)?;
+        }
 
         game::logic::render(&game_state, &mut display);
 
