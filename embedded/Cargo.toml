@@ -20,7 +20,6 @@ log = "0.4"
 esp-idf-svc = "0.51"
 esp-idf-hal = "0.45.2"
 esp-idf-sys = { version = "0.36.1", features = ["binstart"] }
-lockfree = "0.5.1"
 
 # --- Optional Embassy Integration ---
 # esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
