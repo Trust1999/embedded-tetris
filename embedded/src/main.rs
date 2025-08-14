@@ -4,18 +4,18 @@ use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
 use game::display::Max72xx;
-use game::logic::{GameState, InGameState};
+use game::logic::{GameState, InGameState, InStartState};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 pub mod highscore;
-use highscore::{NVS_NAMESPACE, load_highscores, save_highscores};
+use highscore::{load_highscores, save_highscores, NVS_NAMESPACE};
 
 mod website;
 use website::WifiServer;
 
 mod input;
-use input::{ACTION_QUEUE, gpio_04, gpio_05, gpio_06, gpio_07, setup_button};
+use input::{gpio_04, gpio_05, gpio_06, gpio_07, setup_button, ACTION_QUEUE};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -68,6 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     while highscores.try_lock().is_err() {}
 
+    GameState::StartMenu(InStartState::Text);
     loop {
         button1.enable_interrupt()?;
         button2.enable_interrupt()?;
@@ -84,7 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             save_highscores(&mut nvs, &highscores)?;
         }
 
-        game::logic::render(&game_state, &mut display);
+        game::logic::render(&mut game_state, &mut display);
 
         display.transfer_bitmap()?;
     }

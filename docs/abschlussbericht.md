@@ -16,7 +16,8 @@ Anton Unger
 
 Die Motivation ist die Umsetzung eines bekannten Spiels wie Tetris auf einer begrenzten Embedded-Hardware, dies bietet
 eine gute Mögöichkeiten, theoretisches Wissen aus dem Studium der Informatik in eine praxisnahe und vollständige
-Anwendung zu übertragen.
+Anwendung zu übertragen. Des Weiteren soll das Spielprinzip um eine neue Funktion ergänzt werden, nämlich das es
+keine Ranbegrenzung gibt. Dadurch können die Blöcke auf der anderen Seite wieder herauskommen.
 
 Am Ende des Projektes soll auf einem 8x32 großen LED-Display das Spiel Tetris dargestellt werden. Die Spiellogik dafür
 wird in Rust auf einem ESP32-S3 implementiert. Die Steuerung der Spielblöcke erfolgt über vier Taster. Als Anzeigemodul
@@ -28,8 +29,7 @@ Spielergebnisse sollen über eine Weboberfläche angezeigt werden, sobald eine V
 Das Hauptziel des Projektes ist die Realisierung eines vollständig spielbaren Tetris-Spiels auf der Embedded-Hardware.
 Dabei sollen alle Kernfunktionen des Spiels, wie Blockbewegungen, Rotation, Linienlöschung und Punktestand, korrekt
 implementiert sein. Ein weiteres Ziel ist die Vertiefung und Erweiterung des Wissens in den unterschiedlichsten
-Bereichen
-wie in der Programmiersprache Rust, von Embedded-Hardware, Echtzeitprogrammierung und Webservern.
+Bereichen wie in der Programmiersprache Rust, von Embedded-Hardware, Echtzeitprogrammierung und Webservern.
 
 ### Relevanz und Anwendungsgebiet
 

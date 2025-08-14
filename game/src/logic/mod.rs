@@ -7,9 +7,16 @@ mod piece;
 use piece::{Piece, Rotation};
 
 pub enum GameState {
-    StartMenu,
+    StartMenu(InStartState),
     InGame(InGameState),
     GameOver(u32),
+}
+
+pub enum InStartState {
+    Text,
+    ButtonStart,
+    ButtonPressed,
+    ButtonReleased,
 }
 
 pub struct InGameState {
@@ -28,13 +35,22 @@ impl GameState {
         add_score: impl FnMut(u32),
     ) -> Self {
         match self {
-            GameState::StartMenu => GameState::StartMenu,
+            GameState::StartMenu(state) => {
+                if button_actions.is_empty() {
+                    let now = Instant::now();
+                    let time = now + Duration::from_millis(500);
+                    while Instant::now() < time {}
+                    GameState::StartMenu(state)
+                } else {
+                    GameState::InGame(InGameState::new())
+                }
+            }
             GameState::InGame(state) => state.update(button_actions, now, add_score),
             GameState::GameOver(score) => {
                 if button_actions.is_empty() {
                     GameState::GameOver(score)
                 } else {
-                    GameState::InGame(InGameState::new())
+                    GameState::StartMenu(InStartState::Text)
                 }
             }
         }
@@ -196,11 +212,107 @@ impl Blocks {
     }
 }
 
-pub fn render(game_state: &GameState, display: &mut impl Display) {
+pub fn render(game_state: &mut GameState, display: &mut impl Display) {
     match game_state {
-        GameState::StartMenu => display.fill(false),
+        GameState::StartMenu(state) => render_start(state, display),
         GameState::InGame(state) => render_in_game(state, display),
         GameState::GameOver(score) => render_score(*score, display),
+    }
+}
+
+fn render_start(state: &mut InStartState, display: &mut impl Display) {
+    match state {
+        InStartState::Text => {
+            for i in 0..4 {
+                let offset = 8 * i as u8;
+                render_letter(i, offset, display);
+            }
+            *state = InStartState::ButtonStart;
+        }
+        InStartState::ButtonStart => {
+            for i in 0..4 {
+                let offset = 8 * i as u8;
+                render_button(false, offset, display);
+            }
+            *state = InStartState::ButtonPressed;
+        }
+        InStartState::ButtonPressed => {
+            for i in 0..4 {
+                let offset = 8 * i as u8;
+                render_button(true, offset, display);
+            }
+            *state = InStartState::ButtonReleased;
+        }
+        InStartState::ButtonReleased => {
+            for i in 0..4 {
+                let offset = 8 * i as u8;
+                render_button(false, offset, display);
+            }
+            *state = InStartState::Text;
+        }
+    }
+}
+
+fn render_letter(row: i32, offset: u8, display: &mut impl Display) {
+    let bitmap = letter_bitmap(row);
+
+    for (y, row) in bitmap.iter().enumerate() {
+        for x in 0..8 {
+            let mask = 1 << (7 - x); // leftmost pixel is the highest bit
+            let pixel_on = (row & mask) != 0;
+            if pixel_on {
+                display.set_pixel(x, offset + y as u8, true);
+            }
+        }
+    }
+}
+
+fn render_button(button: bool, offset: u8, display: &mut impl Display) {
+    let bitmap = button_bitmap(button);
+
+    for (y, row) in bitmap.iter().enumerate() {
+        for x in 0..8 {
+            let mask = 1 << (7 - x); // leftmost pixel is the highest bit
+            let pixel_on = (row & mask) != 0;
+            if pixel_on {
+                display.set_pixel(x, offset + y as u8, true);
+            }
+        }
+    }
+}
+
+const fn letter_bitmap(c: i32) -> [u8; 8] {
+    match c {
+        0 => [
+            0b01111110, 0b00011000, 0b00011000, 0b00011000, 0b00000000, 0b01111110, 0b01100000,
+            0b01111100,
+        ],
+        1 => [
+            0b01100000, 0b01111110, 0b00000000, 0b01111110, 0b00011000, 0b00011000, 0b00011000,
+            0b01111100,
+        ],
+        2 => [
+            0b01101100, 0b01111110, 0b01101100, 0b01100110, 0b00000000, 0b00011000, 0b00011000,
+            0b00011000,
+        ],
+        3 => [
+            0b00011000, 0b00000000, 0b01111110, 0b01100000, 0b01111110, 0b00000110, 0b01111110,
+            0b00000000,
+        ],
+        _ => [0; 8],
+    }
+}
+
+const fn button_bitmap(b: bool) -> [u8; 8] {
+    match b {
+        true => [
+            0b00000000, 0b00000000, 0b00011000, 0b00011000, 0b01111110, 0b01111110, 0b00000000,
+            0b00000000,
+        ],
+        false => [
+            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b01111110, 0b01111110, 0b00000000,
+            0b00000000,
+        ],
     }
 }
 
