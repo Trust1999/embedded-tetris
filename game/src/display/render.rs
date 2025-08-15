@@ -1,7 +1,8 @@
 use crate::display::Display;
 use crate::logic::piece::Piece;
-use crate::logic::{GameState, InGameState, InStartState};
+use crate::logic::{GameState, InGameState, InStartState, StartMenuPhase};
 use crate::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use std::time::{Duration, Instant};
 
 pub fn render(game_state: &mut GameState, display: &mut impl Display) {
     match game_state {
@@ -12,67 +13,67 @@ pub fn render(game_state: &mut GameState, display: &mut impl Display) {
 }
 
 fn render_start(state: &mut InStartState, display: &mut impl Display) {
-    match state {
-        InStartState::Text => {
-            for i in 0..4 {
-                let offset = 8 * i as u8;
-                render_letter(i, offset, display);
+    // Bestimme die für die aktuelle Phase benötigte Verzögerung
+    let required_delay = match state.phase {
+        StartMenuPhase::Text => Duration::from_millis(3000),
+        _ => Duration::from_millis(500),
+    };
+
+    if state.last_update.elapsed() >= required_delay {
+        let next_phase = match state.phase {
+            StartMenuPhase::Text => StartMenuPhase::ButtonStart,
+            StartMenuPhase::ButtonStart => StartMenuPhase::ButtonPressed,
+            StartMenuPhase::ButtonPressed => StartMenuPhase::ButtonReleased,
+            StartMenuPhase::ButtonReleased => StartMenuPhase::Text,
+        };
+
+        // Perform the render action for the *new* phase
+        // (or you could do it for the old one, depending on the desired behavior)
+        // Here we render based on the state we're transitioning to.
+        match next_phase {
+            StartMenuPhase::Text => {
+                display.fill(false); // Clear screen before redrawing
+                for i in 0..4 {
+                    render_letter(i, 8 * i, display);
+                }
             }
-            *state = InStartState::ButtonStart;
-        }
-        InStartState::ButtonStart => {
-            for i in 0..4 {
-                let offset = 8 * i as u8;
-                render_button(false, offset, display);
+            StartMenuPhase::ButtonStart => {
+                display.fill(false);
+                for i in 0..4 {
+                    render_button(true, 8 * i, display);
+                }
             }
-            *state = InStartState::ButtonPressed;
-        }
-        InStartState::ButtonPressed => {
-            for i in 0..4 {
-                let offset = 8 * i as u8;
-                render_button(true, offset, display);
+            StartMenuPhase::ButtonPressed => {
+                display.fill(false);
+                for i in 0..4 {
+                    render_button(false, 8 * i, display);
+                }
             }
-            *state = InStartState::ButtonReleased;
-        }
-        InStartState::ButtonReleased => {
-            for i in 0..4 {
-                let offset = 8 * i as u8;
-                render_button(false, offset, display);
+            StartMenuPhase::ButtonReleased => {
+                display.fill(false);
+                for i in 0..4 {
+                    render_button(true, 8 * i, display);
+                }
             }
-            *state = InStartState::Text;
         }
+        state.phase = next_phase;
+        state.last_update = Instant::now();
     }
 }
 
-fn render_letter(row: i32, offset: u8, display: &mut impl Display) {
+/// Gets and renders the bitmap for a letter.
+fn render_letter(row: u8, offset: u8, display: &mut impl Display) {
     let bitmap = letter_bitmap(row);
-
-    for (y, row) in bitmap.iter().enumerate() {
-        for x in 0..8 {
-            let mask = 1 << (7 - x); // leftmost pixel is the highest bit
-            let pixel_on = (row & mask) != 0;
-            if pixel_on {
-                display.set_pixel(x, offset + y as u8, true);
-            }
-        }
-    }
+    render_bitmap_rows(&bitmap, offset, display);
 }
 
-fn render_button(button: bool, offset: u8, display: &mut impl Display) {
-    let bitmap = button_bitmap(button);
-
-    for (y, row) in bitmap.iter().enumerate() {
-        for x in 0..8 {
-            let mask = 1 << (7 - x); // leftmost pixel is the highest bit
-            let pixel_on = (row & mask) != 0;
-            if pixel_on {
-                display.set_pixel(x, offset + y as u8, true);
-            }
-        }
-    }
+/// Gets and renders the bitmap for a letter.
+fn render_button(pressed: bool, offset: u8, display: &mut impl Display) {
+    let bitmap = button_bitmap(pressed);
+    render_bitmap_rows(&bitmap, offset, display);
 }
 
-const fn letter_bitmap(c: i32) -> [u8; 8] {
+const fn letter_bitmap(c: u8) -> [u8; 8] {
     match c {
         0 => [
             0b01111110, 0b00011000, 0b00011000, 0b00011000, 0b00000000, 0b01111110, 0b01100000,
@@ -80,15 +81,15 @@ const fn letter_bitmap(c: i32) -> [u8; 8] {
         ],
         1 => [
             0b01100000, 0b01111110, 0b00000000, 0b01111110, 0b00011000, 0b00011000, 0b00011000,
-            0b01111100,
+            0b00000000,
         ],
         2 => [
-            0b01101100, 0b01111110, 0b01101100, 0b01100110, 0b00000000, 0b00011000, 0b00011000,
+            0b01111100, 0b01101100, 0b01111100, 0b01101100, 0b01100110, 0b00000000, 0b00011000,
             0b00011000,
         ],
         3 => [
-            0b00011000, 0b00000000, 0b01111110, 0b01100000, 0b01111110, 0b00000110, 0b01111110,
-            0b00000000,
+            0b00011000, 0b00011000, 0b00000000, 0b01111110, 0b01100000, 0b01111110, 0b00000110,
+            0b01111110,
         ],
         _ => [0; 8],
     }
@@ -155,16 +156,7 @@ fn render_score(score: u32, display: &mut impl Display) {
 
 fn render_digit(digit: u32, offset: u8, display: &mut impl Display) {
     let bitmap = digit_bitmap(digit);
-
-    for (y, row) in bitmap.iter().enumerate() {
-        for x in 0..8 {
-            let mask = 1 << (7 - x); // leftmost pixel is the highest bit
-            let pixel_on = (row & mask) != 0;
-            if pixel_on {
-                display.set_pixel(x, offset + y as u8, true);
-            }
-        }
-    }
+    render_bitmap_rows(&bitmap, offset, display);
 }
 
 const fn digit_bitmap(digit: u32) -> [u8; 8] {
@@ -210,5 +202,17 @@ const fn digit_bitmap(digit: u32) -> [u8; 8] {
             0b00000000,
         ],
         _ => unreachable!(),
+    }
+}
+
+fn render_bitmap_rows(bitmap: &[u8; 8], offset_y: u8, display: &mut impl Display) {
+    for (y, row) in bitmap.iter().enumerate() {
+        for x in 0..8 {
+            let mask = 1 << (7 - x); // leftmost pixel is the highest bit
+            let pixel_on = (row & mask) != 0;
+            if pixel_on {
+                display.set_pixel(x, offset_y + y as u8, true);
+            }
+        }
     }
 }

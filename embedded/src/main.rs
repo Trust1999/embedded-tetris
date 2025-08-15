@@ -3,7 +3,7 @@ use esp_idf_hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::nvs::{EspNvs, EspNvsPartition, NvsDefault};
 use game::display::Max72xx;
 use game::display::render::render;
-use game::logic::{ButtonAction, GameState, InGameState, InStartState};
+use game::logic::{ButtonAction, GameState, InStartState, StartMenuPhase};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -64,7 +64,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut button3 = setup_button(peripherals.pins.gpio6, gpio_06)?;
     let mut button4 = setup_button(peripherals.pins.gpio7, gpio_07)?;
 
-    let mut game_state = GameState::InGame(InGameState::new());
+    let mut game_state = GameState::StartMenu(InStartState {
+        phase: StartMenuPhase::ButtonReleased,
+        last_update: Instant::now() - Duration::from_millis(1000),
+    });
 
     println!("{:?}", highscores);
 
@@ -72,8 +75,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut last_interaction = Instant::now() - Duration::from_millis(1000);
     let mut button_action = None;
-
-    GameState::StartMenu(InStartState::Text);
 
     loop {
         // Collect input

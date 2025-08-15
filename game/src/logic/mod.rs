@@ -11,7 +11,13 @@ pub enum GameState {
     GameOver(u32),
 }
 
-pub enum InStartState {
+pub struct InStartState {
+    pub phase: StartMenuPhase,
+    pub last_update: Instant,
+}
+
+#[derive(Debug)]
+pub enum StartMenuPhase {
     Text,
     ButtonStart,
     ButtonPressed,
@@ -36,9 +42,6 @@ impl GameState {
         match self {
             GameState::StartMenu(state) => {
                 if button_actions.is_none() {
-                    let now = Instant::now();
-                    let time = now + Duration::from_millis(500);
-                    while Instant::now() < time {}
                     GameState::StartMenu(state)
                 } else {
                     GameState::InGame(InGameState::new())
@@ -49,7 +52,10 @@ impl GameState {
                 if button_actions.is_none() {
                     GameState::GameOver(score)
                 } else {
-                    GameState::StartMenu(InStartState::Text)
+                    GameState::StartMenu(InStartState {
+                        phase: StartMenuPhase::ButtonReleased,
+                        last_update: Instant::now() - Duration::from_millis(1000),
+                    })
                 }
             }
         }
