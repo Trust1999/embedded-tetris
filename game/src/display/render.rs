@@ -134,7 +134,7 @@ fn render_piece(piece: &Piece, display: &mut impl Display) {
 }
 
 pub fn wrap_x(x: i16) -> u8 {
-    (if x < 0 { 8 - x.abs() % 8 } else { x % 8 }) as u8
+    (x.rem_euclid(8)) as u8
 }
 
 fn render_score(score: u32, display: &mut impl Display) {

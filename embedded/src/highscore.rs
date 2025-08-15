@@ -28,7 +28,7 @@ impl Highscores {
 
     fn deserialize(string: &str) -> Result<Self, ParseIntError> {
         Ok(Self {
-            scores: string.split(",").map(|str| dbg!(str).parse()).try_fold(
+            scores: string.split(",").map(|str| str.parse()).try_fold(
                 Vec::new(),
                 |mut accum, maybe_elem| {
                     accum.push(maybe_elem?);

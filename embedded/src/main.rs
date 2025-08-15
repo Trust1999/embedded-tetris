@@ -93,14 +93,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             // Debounce
-            if last_interaction.elapsed() > Duration::from_millis(100) {
+            if last_interaction.elapsed() > Duration::from_millis(150) {
                 last_interaction = Instant::now();
                 button_action = Some(action);
             }
-        }
-
-        if let Some(button_action) = button_action {
-            dbg!(button_action);
         }
 
         game_state = game_state.update(button_action.take(), Instant::now(), |score| {
