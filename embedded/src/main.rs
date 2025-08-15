@@ -69,8 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         last_update: Instant::now() - Duration::from_millis(1000),
     });
 
-    println!("{:?}", highscores);
-
+    log::info!("{highscores:?}");
     while highscores.try_lock().is_err() {}
 
     let mut last_interaction = Instant::now() - Duration::from_millis(1000);

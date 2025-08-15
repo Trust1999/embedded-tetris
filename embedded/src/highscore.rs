@@ -11,12 +11,6 @@ pub struct Highscores {
 }
 
 impl Highscores {
-    pub fn new() -> Self {
-        Highscores {
-            scores: Vec::with_capacity(MAX_HIGHSCORES),
-        }
-    }
-
     pub fn add_score(&mut self, new_score: u32) {
         self.scores.push(new_score);
         //to sort the highscores
@@ -34,15 +28,22 @@ impl Highscores {
 
     fn deserialize(string: &str) -> Result<Self, ParseIntError> {
         Ok(Self {
-            scores: string.split(",").map(|str| dbg!(str).parse()).fold(
-                Ok(Vec::new()),
-                |maybe_accum, maybe_elem| {
-                    let mut accum = maybe_accum?;
+            scores: string.split(",").map(|str| dbg!(str).parse()).try_fold(
+                Vec::new(),
+                |mut accum, maybe_elem| {
                     accum.push(maybe_elem?);
                     Ok(accum)
                 },
             )?,
         })
+    }
+}
+
+impl Default for Highscores {
+    fn default() -> Self {
+        Highscores {
+            scores: Vec::with_capacity(MAX_HIGHSCORES),
+        }
     }
 }
 
@@ -59,8 +60,8 @@ pub fn load_highscores(
 ) -> Result<Highscores, Box<dyn std::error::Error>> {
     // Reads the JSON string and attempts to deserialize it
     if let Some(serialized_scores) = nvs.get_str(NVS_KEY, &mut [0u8; 255])? {
-        Ok(Highscores::deserialize(&serialized_scores).unwrap_or(Highscores::new()))
+        Ok(Highscores::deserialize(serialized_scores).unwrap_or_default())
     } else {
-        Ok(Highscores::new())
+        Ok(Highscores::default())
     }
 }

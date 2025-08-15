@@ -11,7 +11,7 @@ pub static BUTTON_ROTATE: AtomicBool = AtomicBool::new(false);
 
 pub fn setup_button<'d>(
     pin: impl Peripheral<P = impl InputPin + OutputPin> + 'd,
-    callback: impl FnMut() -> () + Send + 'static,
+    callback: impl FnMut() + Send + 'static,
 ) -> Result<PinDriver<'d, impl Pin, Input>, EspError> {
     // Create a new PinDriver for GPIO4 configured as an input pin
     let mut driver = PinDriver::input(pin)?;

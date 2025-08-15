@@ -99,8 +99,8 @@ fn generate_html(highscores: &Highscores) -> String {
         body.push_str("<p>Bisher keine Highscores aufgezeichnet.</p>");
     } else {
         body.push_str("<ol>");
-        for (_index, score) in highscores.scores.iter().enumerate() {
-            body.push_str(&format!("<li>Platz: {} Punkte</li>", score));
+        for score in highscores.scores.iter() {
+            body.push_str(&format!("<li>Platz: {score} Punkte</li>"));
         }
         body.push_str("</ol>");
     }
@@ -125,11 +125,10 @@ fn generate_html(highscores: &Highscores) -> String {
         <body>
             <div class="container">
                 <h1>Tetris Highscores</h1>
-                {}
+                {body}
             </div>
         </body>
         </html>
-        "#,
-        body
+        "#
     )
 }

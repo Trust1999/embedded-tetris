@@ -7,6 +7,7 @@ pub struct Max72xx<SPI> {
     rotations: Vec<Rotation>,
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone, Copy)]
 pub enum Rotation {
     Deg0,
@@ -15,15 +16,19 @@ pub enum Rotation {
     Deg270,
 }
 
-const OP_NOOP: u8 = 0x0;
-const OP_DIGIT0: u8 = 0x1;
-const OP_DIGIT7: u8 = 0x8;
-const OP_DECODEMODE: u8 = 0x9;
-const OP_INTENSITY: u8 = 0xa;
-const OP_SCANLIMIT: u8 = 0xb;
-const OP_SHUTDOWN: u8 = 0xc;
-const OP_DISPLAYTEST: u8 = 0xf;
+#[allow(unused)]
+mod op {
+    pub const NOOP: u8 = 0x0;
+    pub const DIGIT0: u8 = 0x1;
+    pub const DIGIT7: u8 = 0x8;
+    pub const DECODEMODE: u8 = 0x9;
+    pub const INTENSITY: u8 = 0xa;
+    pub const SCANLIMIT: u8 = 0xb;
+    pub const SHUTDOWN: u8 = 0xc;
+    pub const DISPLAYTEST: u8 = 0xf;
+}
 
+#[allow(unused)]
 #[repr(u8)]
 enum DecodeMode {
     DecodeNo = 0x00,
@@ -44,13 +49,13 @@ impl<E, SPI: SpiDevice<Error = E>> Max72xx<SPI> {
 
     pub fn reset(&mut self) -> Result<(), E> {
         // Make sure we are not in test mode
-        self.transfer_single_op(OP_DISPLAYTEST, 0x00)?;
+        self.transfer_single_op(op::DISPLAYTEST, 0x00)?;
 
         // We need the multiplexer to scan all segments
-        self.transfer_single_op(OP_SCANLIMIT, 7)?;
+        self.transfer_single_op(op::SCANLIMIT, 7)?;
 
         // We don't want the multiplexer to decode segments for us
-        self.transfer_single_op(OP_DECODEMODE, DecodeMode::DecodeNo as u8)?;
+        self.transfer_single_op(op::DECODEMODE, DecodeMode::DecodeNo as u8)?;
 
         // Enable display
         self.set_shutdown(false)?;
@@ -62,11 +67,11 @@ impl<E, SPI: SpiDevice<Error = E>> Max72xx<SPI> {
     }
 
     pub fn set_shutdown(&mut self, value: bool) -> Result<(), E> {
-        self.transfer_single_op(OP_SHUTDOWN, if value { 0x00 } else { 0x01 })
+        self.transfer_single_op(op::SHUTDOWN, if value { 0x00 } else { 0x01 })
     }
 
     pub fn set_intensity(&mut self, intensity: u8) -> Result<(), E> {
-        self.transfer_single_op(OP_INTENSITY, intensity)
+        self.transfer_single_op(op::INTENSITY, intensity)
     }
 
     pub fn transfer_bitmap(&mut self) -> Result<(), E> {
@@ -86,7 +91,7 @@ impl<E, SPI: SpiDevice<Error = E>> Max72xx<SPI> {
     fn transfer_row(&mut self, row: u8) -> Result<(), E> {
         assert!(row < 8);
 
-        let opcode = OP_DIGIT0 + row;
+        let opcode = op::DIGIT0 + row;
 
         let mut buffer = Vec::with_capacity(self.displays * 2);
         for display in (0..self.displays).rev() {
