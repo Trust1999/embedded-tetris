@@ -124,23 +124,27 @@ impl InGameState {
 
         // Collissions with floor, walls and existing blocks
         let will_intersect = self.blocks.intersects(&collision_piece);
-        if will_intersect {
-            // Place piece on top of existing blocks
-            self.blocks.place_piece(&self.current_piece);
+        let moved_down = matches!(piece_event,  PieceEvent::MoveBy(_, y) if y > 0)
+            | matches!(piece_event, PieceEvent::Drop);
+        match (will_intersect, moved_down) {
+            (true, true) => {
+                // Place piece on top of existing blocks
+                self.blocks.place_piece(&self.current_piece);
 
-            // Remove full rows of blocks
-            self.score += self.blocks.remove_full_rows() * 10;
-            log::info!("Current highscore {}", self.score);
+                // Remove full rows of blocks
+                self.score += self.blocks.remove_full_rows() * 10;
+                log::info!("Current highscore {}", self.score);
 
-            // Check if game is over
-            let game_over = self.blocks.data[7] != 0x00;
-            if game_over {
-                return true;
+                // Check if game is over
+                let game_over = self.blocks.data[7] != 0x00;
+                if game_over {
+                    return true;
+                }
+
+                self.current_piece = self.next_piece.take().unwrap_or(Piece::random());
             }
-
-            self.current_piece = self.next_piece.take().unwrap_or(Piece::random());
-        } else {
-            self.current_piece = collision_piece;
+            (true, _) => {}
+            (false, _) => self.current_piece = collision_piece,
         }
 
         let ((_, min_y), _) = self.current_piece.aabb();
