@@ -15,9 +15,9 @@ Anton Unger
 ### Motivation und Problemstellung
 
 Die Motivation ist die Umsetzung eines bekannten Spiels wie Tetris auf einer begrenzten Embedded-Hardware, dies bietet
-eine gute Mögöichkeiten, theoretisches Wissen aus dem Studium der Informatik in eine praxisnahe und vollständige
+eine gute Möglichkeit, theoretisches Wissen aus dem Studium der Informatik in eine praxisnahe und vollständige
 Anwendung zu übertragen. Des Weiteren soll das Spielprinzip um eine neue Funktion ergänzt werden, nämlich das es
-keine Ranbegrenzung gibt. Dadurch können die Blöcke auf der anderen Seite wieder herauskommen.
+keine Randbegrenzung gibt. Dadurch können die Blöcke auf der anderen Seite wieder herauskommen.
 
 Am Ende des Projektes soll auf einem 8x32 großen LED-Display das Spiel Tetris dargestellt werden. Die Spiellogik dafür
 wird in Rust auf einem ESP32-S3 implementiert. Die Steuerung der Spielblöcke erfolgt über vier Taster. Als Anzeigemodul
@@ -37,8 +37,7 @@ Das Projekt verbindet die Hardwarenahe Programmierung, Embedded Systems und Webe
 Anwendung.
 Durch die Umsetzung eines bekannten Spiels wie Tetris auf einem ESP32-S3 in Rust, wird der Umgang mit
 Mikrocontrollern und Peripheriegeräten wie dem MAX7219 LED-Dot-Matrix-Display, sowie die Implementierung von
-Spiel-Logik,
-Eingabeverarbeitung und Datenpersistenz gelernt.
+Spiel-Logik, Eingabeverarbeitung und Datenpersistenz gelernt.
 
 Das Projekt hat Relevanz für:
 
@@ -49,7 +48,7 @@ Das Projekt hat Relevanz für:
   wertvolle Erfahrungen gesammelt werden.
 * Prototyping für Spiele oder interaktive Displays mit einfacher Benutzerinteraktion über Taster und Anzeigemodule.
 
-## Teschnischer Hintergrund
+## Technischer Hintergrund
 
 ### Relevante Technologien
 
@@ -58,8 +57,7 @@ und robustes System auf einem ESP32-S3 zu realisieren.
 
 Zentrale technische Aspekte sind:
 
-* Interrupt-gesteuerte Eingabeverarbeitung zur Erfassung von Tastereingaben in Echtzeit, kombiniert mit Debouncing und
-  einer lockfreien Queue für eine stabile und verzögerungsfreie Spielführung.
+* Interrupt-gesteuerte Eingabeverarbeitung zur Erfassung von Taster eingaben in Echtzeit.
 * LED-Matrix-Ansteuerung über den MAX7219-Treiberchip, der per SPI (Serial Peripheral Interface) kommuniziert und die
   effiziente Übertragung kompletter Bilddaten an mehrere kaskadierte 8×8-Module ermöglicht.
 * Persistente Datenspeicherung der Highscores im Non-Volatile Storage (NVS) des ESP32-S3, um Spielstände auch nach einem
@@ -80,12 +78,12 @@ Hardware:
 * ESP32-S3 – Dual-Core-Mikrocontroller mit Wi-Fi, großem Funktionsumfang und Unterstützung für Rust über das
   esp-idf-Ökosystem.
 * BerryBase MAX7219 4-in-1 LED-Dot-Matrix-Display – Vier kaskadierte 8×8-Module (32×8 Pixel) mit SPI-Ansteuerung.
-* Vier Taster – Mechanische Eingabegeräte zur Steuerung der Spielfunktionen (Links, Rechts, Runter, Drehen).
+* Vier Taster – mechanische Eingabegeräte zur Steuerung der Spielfunktionen (Links, Rechts, Runter, Drehen).
 
 Protokolle & Schnittstellen:
 
 * SPI (Serial Peripheral Interface) – High-Speed-Datenübertragung zwischen ESP32-S3 und LED-Matrix.
-* GPIO (General Purpose Input/Output) – Direkte Ansteuerung der Taster und Chip-Select-Leitung für das Display.
+* GPIO (General Purpose Input/Output) – direkte Ansteuerung der Taster und Chip-Select-Leitung für das Display.
 * Wi-Fi – ermöglicht den Betrieb eines Webservers auf dem Mikrocontroller für die Highscore-Anzeige.
 
 ## Projektidee und Anforderung
@@ -100,7 +98,7 @@ kümmert sich um die Logik, während die Hardware die Eingaben aufnimmt und die 
 
 Die Zielgruppe des Projekts umfasst:
 
-* Hobby-Elektroniker und Maker, die Interesse an Embedded-Systemen und Microcontrollern haben.
+* Hobby-Elektroniker und Maker, die Interesse an Embedded-Systemen und Microcontroller haben.
 * Software-Entwickler, die ihre Kenntnisse in Rust und Embedded-Programmierung vertiefen möchten.
 * Lernende und Studierende, die praxisnah die Kombination von Hardware, Software und Spielmechanik erfahren wollen.
 * Fans klassischer Spiele, die Spaß daran haben, bekannte Spiele wie Tetris auf ungewöhnlichen Plattformen zu erleben.
@@ -146,7 +144,7 @@ Für die Nicht-Funktionale Anforderungen gilt Folgendes:
 
 ### Eingesetzte Tools und Sprachen
 
-Als Programmiesprache wurde Rust verwendet
+Als Programmiersprache wurde Rust verwendet
 
 ## Tests und Ergebnisse
 
