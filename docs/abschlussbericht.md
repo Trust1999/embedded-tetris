@@ -193,9 +193,47 @@ Die Architektur lässt sich wie folgt gliedern:
 
 ### Modulaufbau / Komponenten
 
+Das Projekt ist in klar definierte Rust-Module unterteilt, die jeweils eine spezifische Aufgabe erfüllen:
+
+* main: Der Einstiegspunkt der Anwendung. Verantwortlich für die Initialisierung des Systems (Peripherie, NVS, Wi-Fi)
+  und die Ausführung der zentralen Spielschleife (main loop).
+* input: Definiert die Logik zur Konfiguration der GPIO-Pins als Taster-Eingänge mit Interrupts. Stellt atomare Flags (
+  AtomicBool) für die thread-sichere Kommunikation zwischen Interrupt-Service-Routinen und der Hauptschleife bereit.
+* logic: Beinhaltet die gesamte Spielmechanik. Der GameState-Enum (StartMenu, InGame, GameOver) dient als
+  Zustandsautomat, der den Spielfluss steuert. Hier sind auch die Definitionen der Tetris-Steine (Piece) und die
+  Verwaltung des Spielfelds (Blocks) angesiedelt.
+* display: Dieses Modul kapselt alles, was mit der Anzeige zu tun hat. Es definiert den zentralen Display-Trait, den
+  Max72xx-Treiber für die LED-Matrix und den TextDisplay-Treiber für die Konsolenausgabe.
+* render: Enthält die Funktionen, um die verschiedenen Spielzustände auf einem Display-Objekt darzustellen. Hier sind
+  Bitmaps für Buchstaben und Zahlen als const fn hinterlegt, um sie effizient im Flash-Speicher zu lagern.
+* highscore: Kümmert sich um das Serialisieren und Deserialisieren der Highscore-Daten sowie um deren persistente
+  Speicherung im Non-Volatile Storage (NVS).
+* website: Implementiert den Wi-Fi Access Point und den HTTP-Webserver zur Anzeige der Highscore-Liste.
+
 ### Wichtige Schnittstellen
 
+* display::Display Trait: Die wichtigste interne Schnittstelle. Sie entkoppelt die Rendering-Logik von der
+  Display-Hardware und ermöglicht einfaches Mocking und Testen.
+* SPI (Serial Peripheral Interface): Die Hardware-Schnittstelle zwischen dem ESP32 und dem MAX7219-Displaytreiber zur
+  Übertragung von Bilddaten und Konfigurationsbefehlen.
+* GPIO-Interrupts: Die Schnittstelle zwischen den physischen Tastern und der Software. Ein Tastendruck löst einen
+  Interrupt aus, der von der input-Logik verarbeitet wird.
+* HTTP-Server: Die externe Schnittstelle, die es Benutzern ermöglicht, über einen Webbrowser auf die Highscore-Daten
+  zuzugreifen.
+
 ### Begründung von Entscheidungen
+
+Wahl von Rust: Rust wurde aufgrund seiner Garantien für Speichersicherheit und seiner Fähigkeit, performanten,
+hardwarenahen Code ohne Garbage Collector zu erzeugen, gewählt. Das starke Typsystem und das Ökosystem (embedded-hal)
+sind ideal für robuste Embedded-Anwendungen.
+
+Abstraktion durch Display-Trait: Die Entscheidung, einen generischen Display-Trait zu schaffen, war architektonisch
+zentral. Sie ermöglichte die Entwicklung und das Testen der gesamten Rendering- und Spiellogik auf einem PC (über
+TextDisplay), bevor die Hardware-Implementierung vollständig abgeschlossen war.
+
+Interrupt-basierte Eingabe: Anstelle von Polling wurde ein Interrupt-basierter Ansatz für die Taster gewählt. Dies ist
+deutlich effizienter, da die CPU nicht ständig den Zustand der Pins abfragen muss und sich in der Zwischenzeit anderen
+Aufgaben widmen kann.
 
 ## Implementierung
 
