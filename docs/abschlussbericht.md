@@ -28,99 +28,131 @@ gehostete Weboberfläche zugänglich gemacht.
 
 ### Ziele des Projektes
 
-Das Hauptziel des Projektes ist die Realisierung eines vollständig spielbaren Tetris-Spiels auf der Embedded-Hardware.
-Dabei sollen alle Kernfunktionen des Spiels, wie Blockbewegungen, Rotation, Linienlöschung und Punktestand, korrekt
-implementiert sein. Ein weiteres Ziel ist die Vertiefung und Erweiterung des Wissens in den unterschiedlichsten
-Bereichen wie in der Programmiersprache Rust, von Embedded-Hardware, Echtzeitprogrammierung und Webservern.
+Das Hauptziel war die Entwicklung eines vollständig funktions- und spielfähigen Tetris-Klons auf der ausgewählten
+Embedded-Plattform. Dies umfasste die korrekte Implementierung aller wesentlichen Kernfunktionen:
+
+* Spielmechanik: Blockbewegungen (links, rechts, unten), Rotation, automatisches Herabfallen der Blöcke, Erkennung und
+  Auflösung vollständiger horizontaler Linien sowie eine funktionierende Punktevergabe.
+* Anzeige und Steuerung: Eine flüssige Echtzeit-Darstellung des Spielgeschehens auf dem LED-Display sowie eine
+  reaktionsschnelle Verarbeitung der Taster-Eingaben.
+* Highscore-System: Persistente Speicherung der besten Punktzahlen, die auch nach einem Neustart des Geräts erhalten
+  bleiben.
+* Web-Interface: Bereitstellung einer einfachen Weboberfläche über einen WLAN-Access-Point, um die Highscore-Liste
+  abzurufen.
+
+Ein sekundäres, persönliches Ziel war die Vertiefung unserer Kenntnisse in der hardwarenahen Programmierung mit Rust,
+der Arbeit mit Embedded-Systemen und deren Peripherie sowie der Integration von Netzwerkfunktionalitäten wie einem
+Webserver auf einem Mikrocontroller.
 
 ### Relevanz und Anwendungsgebiet
 
-Das Projekt verbindet die Hardwarenahe Programmierung, Embedded Systems und Webentwicklung in einer praxisnahen
-Anwendung.
-Durch die Umsetzung eines bekannten Spiels wie Tetris auf einem ESP32-S3 in Rust, wird der Umgang mit
-Mikrocontrollern und Peripheriegeräten wie dem MAX7219 LED-Dot-Matrix-Display, sowie die Implementierung von
-Spiel-Logik, Eingabeverarbeitung und Datenpersistenz gelernt.
+Das Projekt verbindet die hardwarenahe Programmierung, Embedded Systems und Webentwicklung in einer
+greifbaren Anwendung. Die Implementierung zeigt exemplarisch, wie moderne, sichere Programmiersprachen wie Rust für
+komplexe Aufgaben auf Mikrocontrollern eingesetzt werden können.
 
-Das Projekt hat Relevanz für:
+Potenzielle Anwendungsgebiete und Relevanz des Projekts sind:
 
-* Lern- und Lehrzwecke im Bereich Embedded Systems, um komplexe Logik auf begrenzter Hardware zu realisieren.
-* Demonstrationen und Ausstellungen, da Tetris einen hohen Wiedererkennungswert hat und sich gut für Präsentationen
-  eignet.
-* Grundlagenforschung im Bereich Rust auf Mikrocontrollern, da Rust im Embedded-Bereich noch relativ neu ist und so
-  wertvolle Erfahrungen gesammelt werden.
-* Prototyping für Spiele oder interaktive Displays mit einfacher Benutzerinteraktion über Taster und Anzeigemodule.
+* Lehr- und Lernprojekte: Als anschauliches Beispiel im Bereich Embedded Systems, um die Realisierung von
+  Echtzeitanwendungen auf limitierter Hardware zu demonstrieren.
+* Demonstrationen und Prototyping: Der hohe Wiedererkennungswert von Tetris eignet sich hervorragend für Präsentationen
+  auf Messen oder für das Prototyping von interaktiven Displays mit einfacher Benutzerinteraktion.
+* Praxiserfahrung mit Rust: Das Projekt liefert wertvolle Einblicke in die Stärken und Herausforderungen von Rust im
+  Embedded-Bereich, einem noch wachsenden Ökosystem.
 
 ## Technischer Hintergrund
 
 ### Relevante Technologien
 
-Das Projekt nutzt Embedded-Programmierung mit der Programmiersprache Rust, für ein ressourcenschonendes, sicheres
-und robustes System auf einem ESP32-S3 zu realisieren.
+Das Projekt stützt sich auf die Programmiersprache Rust, die aufgrund ihrer Speichersicherheit und
+Performance-Eigenschaften eine exzellente Wahl für die Entwicklung robuster Embedded-Systeme ist.
 
-Zentrale technische Aspekte sind:
+Zentrale technische Aspekte der Umsetzung sind:
 
-* Interrupt-gesteuerte Eingabeverarbeitung zur Erfassung von Taster eingaben in Echtzeit.
-* LED-Matrix-Ansteuerung über den MAX7219-Treiberchip, der per SPI (Serial Peripheral Interface) kommuniziert und die
-  effiziente Übertragung kompletter Bilddaten an mehrere kaskadierte 8×8-Module ermöglicht.
-* Persistente Datenspeicherung der Highscores im Non-Volatile Storage (NVS) des ESP32-S3, um Spielstände auch nach einem
-  Neustart zu erhalten.
-* IoT mit Webserver-Integration direkt auf dem Mikrocontroller, um Spielstände ohne zusätzliche Software über einen
-  Browser abrufbar zu machen.
+* Interrupt-gesteuerte Eingabeverarbeitung: Die vier Taster sind über GPIOs angebunden und lösen bei Betätigung
+  Interrupts aus. Dies ermöglicht eine reaktionsschnelle und ressourcenschonende Erfassung von Benutzereingaben, ohne
+  dass die CPU ständig die Pin-Zustände abfragen muss (Polling).
+* LED-Matrix-Ansteuerung via SPI: Die Kommunikation mit dem MAX7219-Treiberchip des Displays erfolgt über das Serial
+  Peripheral Interface (SPI). Dieses serielle Protokoll erlaubt eine effiziente und schnelle Übertragung der Bilddaten
+  an die kaskadierten 8x8-Module.
+* Persistente Datenspeicherung (NVS): Highscores werden im Non-Volatile Storage (NVS) des ESP32 abgelegt. Dieser
+  Flash-Speicherbereich behält seine Daten auch ohne Stromversorgung, wodurch die Spielstände dauerhaft gesichert sind.
+* Integrierter Webserver: Der ESP32 agiert als WLAN-Access-Point und hostet einen HTTP-Server. Dies ermöglicht es, die
+  Highscore-Liste plattformunabhängig über einen Webbrowser auf jedem WLAN-fähigen Gerät abzurufen.
 
 ### Verwendete Frameworks, Hardware, Protokolle
 
 Frameworks & Bibliotheken:
 
-* esp-idf-hal – Hardware-Abstraktionsschicht für den ESP32, um GPIOs, SPI und Timer in Rust zu steuern.
-* esp-idf-svc – Services wie Logging, Wi-Fi und NVS-Anbindung.
-* lockfree – Implementierung einer lockfreien Queue für schnelle, thread-sichere Eingabeverarbeitung.
+* esp-idf-hal: Eine Hardware Abstraction Layer (HAL) für Rust, die eine typsichere und high-level Ansteuerung der
+  ESP32-Peripherie wie GPIOs und SPI ermöglicht.
+* esp-idf-svc: Stellt System-Services wie Logging, Wi-Fi-Management und die NVS-Anbindung für das esp-idf-Ökosystem
+  bereit.
+* std::sync::atomic: Zur thread-sicheren Kommunikation zwischen den Interrupt-Routinen (welche die Taster-Eingaben
+  registrieren) und dem Haupt-Thread der Spiellogik.
 
 Hardware:
 
-* ESP32-S3 – Dual-Core-Mikrocontroller mit Wi-Fi, großem Funktionsumfang und Unterstützung für Rust über das
-  esp-idf-Ökosystem.
-* BerryBase MAX7219 4-in-1 LED-Dot-Matrix-Display – Vier kaskadierte 8×8-Module (32×8 Pixel) mit SPI-Ansteuerung.
-* Vier Taster – mechanische Eingabegeräte zur Steuerung der Spielfunktionen (Links, Rechts, Runter, Drehen).
+* ESP32-S3-DevKitC-1: Ein leistungsstarker Dual-Core-Mikrocontroller mit integriertem Wi-Fi, der umfassende
+  Unterstützung für das Rust-Ökosystem bietet.
+* BerryBase MAX7219 4-in-1 LED-Dot-Matrix-Display: Ein Anzeigemodul bestehend aus vier kaskadierten 8x8-LED-Matrizen,
+  was eine Gesamtauflösung von 32x8 Pixeln ergibt.
+* Vier Taster: Einfache mechanische Schalter für die Spielsteuerung (Links, Rechts, Runter, Drehen).
 
 Protokolle & Schnittstellen:
 
-* SPI (Serial Peripheral Interface) – High-Speed-Datenübertragung zwischen ESP32-S3 und LED-Matrix.
-* GPIO (General Purpose Input/Output) – direkte Ansteuerung der Taster und Chip-Select-Leitung für das Display.
-* Wi-Fi – ermöglicht den Betrieb eines Webservers auf dem Mikrocontroller für die Highscore-Anzeige.
+* SPI (Serial Peripheral Interface): Wird für die High-Speed-Datenübertragung zwischen dem ESP32-S3 und der LED-Matrix
+  genutzt.
+* GPIO (General Purpose Input/Output): Dient zur Abfrage der Tasterzustände (Input) und zur Ansteuerung der
+  Chip-Select-Leitung des Displays (Output).
+* Wi-Fi (IEEE 802.11): Ermöglicht den Betrieb des ESP32 als Access Point für die Bereitstellung des Webservers.
 
 ## Projektidee und Anforderung
 
 ### Kurze Beschreibung des Konzepts
 
-Das Projekt basiert auf der Idee, Tetris auf einem Embedded-System spielbar zu machen. Über Tasten an der Hardware
-können die Spieler die Blöcke steuern, während ein LED- oder Matrixdisplay das Spielfeld visualisiert. Die Software
-kümmert sich um die Logik, während die Hardware die Eingaben aufnimmt und die Ausgabe in Echtzeit darstellt.
+Das Projekt realisiert das Spiel Tetris auf einem autarken Embedded-System. Ein ESP32-S3 Mikrocontroller steuert die
+gesamte Spiellogik, verarbeitet Benutzereingaben und stellt das Spielfeld auf einem 32x8 Pixel LED-Matrix-Display dar.
+Spieler steuern die fallenden Blöcke mit vier Tastern. Eine Besonderheit ist das "Screen-Wrapping", bei dem Blöcke, die
+seitlich aus dem Spielfeld bewegt werden, auf der gegenüberliegenden Seite wieder erscheinen. Die erreichten Punktzahlen
+werden persistent gespeichert und können über eine vom ESP32 bereitgestellte Webseite eingesehen werden, indem man sich
+mit dessen WLAN-Netzwerk verbindet.
 
 ### Zielgruppe/User
 
-Die Zielgruppe des Projekts umfasst:
+Die Zielgruppe des Projekts ist breit gefächert und umfasst:
 
-* Hobby-Elektroniker und Maker, die Interesse an Embedded-Systemen und Microcontroller haben.
-* Software-Entwickler, die ihre Kenntnisse in Rust und Embedded-Programmierung vertiefen möchten.
-* Lernende und Studierende, die praxisnah die Kombination von Hardware, Software und Spielmechanik erfahren wollen.
-* Fans klassischer Spiele, die Spaß daran haben, bekannte Spiele wie Tetris auf ungewöhnlichen Plattformen zu erleben.
+* Hobby-Elektroniker und Maker: Personen mit Interesse an der Verknüpfung von Hardware und Software in praktischen
+  Projekten.
+* Software-Entwickler: Insbesondere jene, die ihre Kenntnisse in Rust und im Bereich der Embedded-Programmierung
+  erweitern möchten.
+* Studierende: Als praktisches Projekt zur Anwendung von Konzepten aus den Bereichen Rechnerarchitektur, Echtzeitsysteme
+  und Softwareentwicklung.
+* Retro-Gaming-Fans: Enthusiasten, die Freude daran haben, klassische Spiele auf unkonventioneller, selbstgebauter
+  Hardware zu erleben.
 
 ### Funktionale und Nicht-Funktionale Anforderungen
 
-Für die funktionalen Anforderungen soll das System folgendes implementieren:
+Funktionale Anforderungen:
 
-* Spielsteuerung: Die Blöcke müssen über Tasten bewegt (links/rechts), gedreht und nach unten fallen gelassen werden
+* Spielsteuerung: Das System muss die Steuerung der Blöcke (Bewegung nach links/rechts, Beschleunigung nach unten,
+  Rotation) über vier dedizierte Taster ermöglichen.
+* Spielmechanik: Das Spiel muss fallende Blöcke generieren, Kollisionen erkennen, volle Linien auflösen, den Punktestand
+  zählen und ein "Game Over"-Szenario erkennen, wenn das Spielfeld voll ist.
+* Anzeige: Das Spielfeld, die fallenden Blöcke und der aktuelle Zustand müssen in Echtzeit auf dem LED-Display
+  visualisiert werden.
+* Highscore: Das System muss eine Liste der Top-10-Punktestände führen, diese nach einem Spiel aktualisieren und
+  persistent speichern.
+* Web-Interface: Das Gerät muss einen WLAN-Access-Point aufspannen und eine Webseite mit der Highscore-Liste ausliefern
   können.
-* Anzeige: Das Spielfeld wird in Echtzeit auf dem LED-Display dargestellt.
-* Spielmechanik: Linien werden erkannt und gelöscht, Punkte werden gezählt, das Spiel endet bei voller Füllung des
-  Spielfeldes.
 
-Für die Nicht-Funktionale Anforderungen gilt Folgendes:
+Nicht-Funktionale Anforderungen:
 
-* Zuverlässigkeit: Das System soll stabil laufen und Abstürze vermeiden.
-* Reaktionszeit: Eingaben sollen innerhalb von Millisekunden umgesetzt werden.
-* Benutzerfreundlichkeit: Die Steuerung soll intuitiv sein, auch für Personen ohne technische Vorkenntnisse.
-* Wartbarkeit: Der Code soll modular und gut dokumentiert sein, um Erweiterungen oder Fehlerbehebungen zu erleichtern.
+* Zuverlässigkeit: Die Anwendung muss stabil und ohne Abstürze laufen.
+* Reaktionszeit: Taster-Eingaben müssen ohne spürbare Verzögerung (< 150 ms) verarbeitet und auf dem Display
+  widergespiegelt werden.
+* Benutzerfreundlichkeit: Die Steuerung muss einfach und intuitiv verständlich sein.
+* Wartbarkeit: Der Rust-Code soll modular und klar strukturiert sein, um zukünftige Erweiterungen oder Fehlerbehebungen
+  zu vereinfachen.
 
 ### Erste Skizzen und Diagramme
 
