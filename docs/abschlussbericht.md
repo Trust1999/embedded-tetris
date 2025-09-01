@@ -241,7 +241,10 @@ Aufgaben widmen kann.
 
 ### Eingesetzte Tools und Sprachen
 
-Als Programmiersprache wurde Rust verwendet
+Als Programmiersprache wurde Rust in der no_std-Umgebung (mit std-Unterstützung durch das esp-idf-Framework) verwendet.
+Der Build-Prozess und die Verwaltung von Abhängigkeiten (Crates) erfolgen über Cargo, den Standard-Paketmanager von
+Rust. Die Entwicklungsumgebung war Visual Studio Code mit der rust-analyzer-Erweiterung und RustRover. Das Flashen der
+Firmware auf den ESP32-S3 und das Auslesen der seriellen Konsole wurden mit dem espflash-Tool realisiert.
 
 ## Tests und Ergebnisse
 
