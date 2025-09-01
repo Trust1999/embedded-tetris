@@ -166,6 +166,31 @@ Nicht-Funktionale Anforderungen:
 
 ### Übersicht der Systemarchitektur
 
+Die Systemarchitektur ist in mehrere logische Schichten unterteilt, um eine klare Trennung der Verantwortlichkeiten (
+Separation of Concerns) zu gewährleisten und die Modularität zu erhöhen. Dies erleichtert die Wartung und Testbarkeit
+des Systems.
+
+Die Architektur lässt sich wie folgt gliedern:
+
+1. Hardware Abstraction Layer (HAL): Die unterste Ebene wird durch die esp-idf-hal-Bibliothek gebildet. Sie abstrahiert
+   den direkten Zugriff auf die Peripherie des ESP32-S3 (GPIO, SPI) und stellt sichere Rust-Schnittstellen bereit.
+2. Treiber-Schicht: Auf der HAL aufbauend befindet sich der hardwarespezifische Treiber für die LED-Matrix (display::
+   Max72xx). Dieser Treiber ist für die direkte Kommunikation mit den MAX7219-Chips über das SPI-Protokoll
+   verantwortlich.
+3. Abstraktions-Schicht (Display Trait): Eine zentrale Komponente der Architektur ist der display::Display-Trait. Er
+   definiert eine generische Schnittstelle für ein anzeigbares Medium mit den Methoden set_pixel und fill. Diese
+   Abstraktion entkoppelt die Spiellogik vollständig von der konkreten Hardware. Für Test- und Debugging-Zwecke
+   existiert mit TextDisplay eine zweite Implementierung dieses Traits, die das Spielfeld in der Konsole ausgibt.
+4. Rendering-Schicht: Das render-Modul ist dafür zuständig, den aktuellen Spielzustand (GameState) in sichtbare Pixel zu
+   übersetzen. Es nutzt den Display-Trait, um die entsprechenden Pixel zu setzen, ohne wissen zu müssen, ob die Ausgabe
+   auf einer LED-Matrix oder in der Konsole erfolgt.
+5. Logik-Schicht: Das logic-Modul enthält die komplette Spiellogik, inklusive der Zustandsautomaten (GameState), der
+   Blockdefinitionen (Piece) und der Spielregeln. Diese Schicht ist vollständig unabhängig von jeglicher Ein- und
+   Ausgabe.
+6. Applikations-Schicht: Die main.rs-Datei bildet die oberste Schicht. Sie initialisiert alle Hardwarekomponenten und
+   Bibliotheken, verarbeitet in einer Endlosschleife die Benutzereingaben, aktualisiert den Zustand der Spiellogik und
+   stößt den Rendering-Vorgang an.
+
 ### Modulaufbau / Komponenten
 
 ### Wichtige Schnittstellen
