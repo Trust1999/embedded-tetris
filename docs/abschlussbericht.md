@@ -14,15 +14,17 @@ Anton Unger
 
 ### Motivation und Problemstellung
 
-Die Motivation ist die Umsetzung eines bekannten Spiels wie Tetris auf einer begrenzten Embedded-Hardware, dies bietet
-eine gute Möglichkeit, theoretisches Wissen aus dem Studium der Informatik in eine praxisnahe und vollständige
-Anwendung zu übertragen. Des Weiteren soll das Spielprinzip um eine neue Funktion ergänzt werden, nämlich das es
-keine Randbegrenzung gibt. Dadurch können die Blöcke auf der anderen Seite wieder herauskommen.
+Die zentrale Motivation dieses Projekts war die praktische Anwendung von im Informatikstudium erworbenem theoretischem
+Wissen. Die Umsetzung eines bekannten Spielklassikers wie Tetris auf ressourcenbeschränkter Embedded-Hardware bot
+hierfür den idealen Rahmen. Das Projekt stellte uns vor die Herausforderung, eine vollständige Applikation von der
+hardwarenahen Ansteuerung bis zur Weboberfläche zu entwickeln. Eine besondere Anforderung war die Erweiterung des
+klassischen Spielprinzips: Anstelle fester seitlicher Begrenzungen sollten die Spielblöcke das Spielfeld an einem Rand
+verlassen und auf der gegenüberliegenden Seite wieder eintreten können (Screen-Wrapping).
 
-Am Ende des Projektes soll auf einem 8x32 großen LED-Display das Spiel Tetris dargestellt werden. Die Spiellogik dafür
-wird in Rust auf einem ESP32-S3 implementiert. Die Steuerung der Spielblöcke erfolgt über vier Taster. Als Anzeigemodul
-wird ein BerryBase MAX7219 4-in-1 LED-Dot-Matrix-Display (8×8, SPI-Bus, 5 V, 10 MHz) verwendet. Die 10 besten
-Spielergebnisse sollen über eine Weboberfläche angezeigt werden, sobald eine Verbindung mit dem ESP32-S3 besteht.
+Das Endprodukt ist ein auf einem ESP32-S3-Mikrocontroller in Rust implementiertes Tetris-Spiel. Die Darstellung des 8x32
+Pixel großen Spielfelds erfolgt auf einem kaskadierten MAX7219 LED-Dot-Matrix-Display. Die Steuerung wird über vier
+Taster realisiert, und die zehn besten Spielergebnisse werden persistent gespeichert und über eine auf dem ESP32
+gehostete Weboberfläche zugänglich gemacht.
 
 ### Ziele des Projektes
 
