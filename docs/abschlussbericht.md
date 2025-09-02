@@ -239,6 +239,318 @@ Aufgaben widmen kann.
 
 ### Beschreibung zentraler Programmteil
 
+#### Interrupt-basierte Eingabeverarbeitung
+
+Das Projekt nutzt einen Interrupt-basierten Ansatz, um auf Tastendrücke zu reagieren. Die zentrale Logik hierfür
+befindet sich im input-Modul.
+
+1. Globale Flags zur Kommunikation\
+   Es werden vier globale, atomare boolesche Variablen deklariert. Diese dienen als thread-sichere Brücke zwischen dem
+   Interrupt-Kontext (der jederzeit auftreten kann) und der Haupt-Spielschleife.
+
+```rust
+// input.rs
+use std::sync::atomic::{AtomicBool, Ordering};
+
+pub static BUTTON_LEFT: AtomicBool = AtomicBool::new(false);
+pub static BUTTON_RIGHT: AtomicBool = AtomicBool::new(false);
+pub static BUTTON_DOWN: AtomicBool = AtomicBool::new(false);
+pub static BUTTON_ROTATE: AtomicBool = AtomicBool::new(false);
+```
+
+2. Konfiguration der GPIO-Pins\
+   Die Funktion setup_button konfiguriert einen GPIO-Pin für die Eingabe. Sie aktiviert einen internen
+   Pull-Up-Widerstand, wodurch der Pin standardmäßig auf HIGH-Pegel liegt. Der Interrupt wird so eingestellt, dass er
+   bei einer fallenden Flanke (NegEdge) auslöst – also genau dann, wenn der Taster gedrückt wird und den Pin auf
+   LOW-Pegel zieht. Eine übergebene callback-Funktion wird als Handler für diesen Interrupt registriert.
+
+```rust
+// input.rs
+pub fn setup_button<'d>(
+    pin: impl Peripheral<P=impl InputPin + OutputPin> + 'd,
+    callback: impl FnMut() + Send + 'static,
+) -> Result<PinDriver<'d, impl Pin, Input>, EspError> {
+    let mut driver = PinDriver::input(pin)?;
+    driver.set_pull(Pull::Up)?;
+    driver.set_interrupt_type(gpio::InterruptType::NegEdge)?;
+    unsafe { driver.subscribe(callback)? };
+    driver.enable_interrupt()?;
+    Ok(driver)
+}
+```
+
+3. Die Interrupt-Handler\
+   Die Callback-Funktionen selbst (z. B. gpio_04) sind die eigentlichen Interrupt-Service-Routinen (ISR). Sie sind
+   bewusst minimal gehalten und setzen lediglich das entsprechende atomare Flag auf true.
+
+```rust
+// input.rs
+pub fn gpio_04() {
+    BUTTON_LEFT.store(true, Ordering::SeqCst);
+}
+```
+
+Die Haupt-Spielschleife in main.rs prüft dann diese Flags, verarbeitet die Eingabe und setzt die Flags wieder auf false
+zurück.
+
+#### Webserver für Highscore-Anzeige
+
+Um die Highscores anzuzeigen, startet der ESP32 einen eigenen WLAN-Access-Point und einen HTTP-Webserver.
+
+1. WLAN Access Point\
+   Die WifiServer-Struktur konfiguriert und startet beim Erstellen einen WLAN-Access-Point mit fest definierten
+   Zugangsdaten (SSID und Passwort).
+
+```rust
+// website.rs
+const SSID: &str = "ESP32-Tetris";
+const PASSWORD: &str = "tetris123";
+```
+
+2. HTTP-Server und Routen-Handler\
+   Anschließend wird ein HTTP-Server initialisiert. Für den Wurzelpfad (/) wird ein Handler registriert, der bei jeder
+   Anfrage ausgeführt wird.
+
+```rust
+// website.rs
+// ... in WifiServer::new()
+let mut server = EspHttpServer::new( & Configuration::default ()) ?;
+
+server.fn_handler("/", esp_idf_svc::http::Method::Get, move | request| {
+// ...
+}) ?;
+```
+
+3. Dynamische HTML-Generierung\
+   Der Handler greift thread-sicher auf die Highscore-Liste zu, generiert dynamisch eine HTML-Seite und sendet diese als
+   Antwort an den Client (z. B. einen Webbrowser). Die Funktion generate_html erstellt das HTML-Dokument, indem sie die
+   Punktzahlen in eine geordnete Liste einfügt.
+
+```rust
+// website.rs
+fn generate_html(highscores: &Highscores) -> String {
+    let mut body = String::new();
+
+    if highscores.scores.is_empty() {
+        body.push_str("<p>Bisher keine Highscores aufgezeichnet.</p>");
+    } else {
+        body.push_str("<ol>");
+        for score in highscores.scores.iter() {
+            body.push_str(&format!("<li>Platz: {score} Punkte</li>"));
+        }
+        body.push_str("</ol>");
+    }
+    // ... restliches HTML-Grundgerüst
+    format!(/* ... */)
+}
+```
+
+#### Persistente Highscore-Speicherung
+
+Damit die Highscores einen Neustart des Geräts überdauern, werden sie im Non-Volatile Storage (NVS) des ESP32
+gespeichert.
+
+1. Datenstruktur und Speichermanagement\
+   Die Highscores-Struktur hält die Punktzahlen in einem Vektor. Die add_score-Methode fügt einen neuen Score hinzu,
+   sortiert die Liste absteigend und kürzt sie auf die maximale Anzahl von 10 Einträgen.
+
+```rust
+// highscore.rs
+const MAX_HIGHSCORES: usize = 10;
+
+// ...
+impl Highscores {
+    pub fn add_score(&mut self, new_score: u32) {
+        self.scores.push(new_score);
+        self.scores.sort_by(|a, b| b.cmp(a));
+        self.scores.truncate(MAX_HIGHSCORES);
+    }
+}
+```
+
+2. Serialisierung und Deserialisierung\
+   Da im NVS nur einfache Datentypen wie Strings gespeichert werden können, muss die Liste der Scores (Zahlen) in einen
+   String umgewandelt (serialisiert) werden und umgekehrt. Dies geschieht durch Verbinden der Zahlen mit Kommas.
+
+```rust
+// highscore.rs
+impl Highscores {
+    fn serialize(&self) -> String {
+        self.scores
+            .iter()
+            .map(u32::to_string)
+            .reduce(|accum, elem| accum + "," + &elem)
+            .unwrap_or_default()
+    }
+    // ... deserialize-Funktion
+}
+```
+
+3. Speichern und Laden\
+   Die Funktionen save_highscores und load_highscores schreiben bzw. lesen den serialisierten String in einen
+   definierten NVS-Bereich (NVS_NAMESPACE) unter einem festen Schlüssel (NVS_KEY).
+
+```rust
+// highscore.rs
+pub const NVS_NAMESPACE: &str = "highscores";
+const NVS_KEY: &str = "scores_v2";
+
+pub fn save_highscores(
+    nvs: &mut EspNvs<NvsDefault>,
+    highscores: &Highscores,
+) -> Result<(), Box<dyn std::error::Error>> {
+    nvs.set_str(NVS_KEY, &highscores.serialize())?;
+    Ok(())
+}
+```
+
+#### Spiellogik und Zustandsverwaltung
+
+Die Logik des Spiels ist in mehrere Teile aufgeteilt, die den Spielzustand, die Spielsteine und die Spielregeln
+verwalten.
+
+1. Zustandsautomat (State Machine)\
+   Das gesamte Spiel wird über den GameState-Enum gesteuert, der als Zustandsautomat fungiert. Er definiert, ob sich das
+   Spiel im Startmenü (StartMenu), im laufenden Spiel (InGame) oder im "Game Over"-Bildschirm (GameOver) befindet. Die
+   main-Funktion wechselt basierend auf Spieleraktionen und Spielereignissen zwischen diesen Zuständen.
+
+```rust
+// main.rs, basierend auf der Logik in game::logic
+// In GameState::update(...)
+game_state = game_state.update(button_action.take(), Instant::now(), | score| {
+// ...
+});
+```
+
+2. Definition der Spielsteine (Piece)\
+   Jeder Spielstein ist durch den PieceKind-Enum definiert, der die Form festlegt. Die relative Position der
+   einzelnen Blöcke eines Steins wird in block_offsets als Tupel von Koordinaten gespeichert.
+
+```rust
+// piece.rs
+#[derive(Clone, Copy)]
+enum PieceKind { O, T, S, Z, J, L, I }
+
+impl PieceKind {
+    const fn block_offsets(self) -> &'static [(i8, i8)] {
+        match self {
+            PieceKind::O => &[(0, 0), (1, 0), (0, 1), (1, 1)],
+            PieceKind::T => &[(0, 0), (0, 1), (1, 1), (0, 2)],
+            // ... andere Steine
+        }
+    }
+}
+```
+
+3. Bewegung und Rotation\
+   Die Piece-Struktur speichert die aktuelle Position (x, y), den Typ (kind) und die Rotation eines Steins. Methoden wie
+   move_by und rotate verändern diesen Zustand. Die tatsächlichen Bildschirmkoordinaten jedes einzelnen Blocks werden
+   zur Laufzeit durch die block_positions-Methode berechnet, die die Basis-Offsets, die Rotation und die Position des
+   Steins kombiniert.
+
+```rust
+// piece.rs
+#[derive(Clone)]
+pub struct Piece {
+    x: i16,
+    y: i16,
+    kind: PieceKind,
+    rotation: Rotation,
+}
+
+impl Piece {
+    pub fn rotate(&mut self, by: Rotation) {}
+
+    pub fn move_by(&mut self, dx: i16, dy: i16) {
+        self.x += dx;
+        self.y += dy;
+    }
+}
+```
+
+#### Ausgabe
+
+1. Display-Treiber (Max72xx)\
+   Der Treiber für die MAX7219-LED-Matrix ist eine zentrale Komponente des Projekts. Er verwaltet einen internen
+   Framebuffer (bitmap) im Speicher des ESP32, der den Zustand jedes Pixels der 32x8-Matrix abbildet. Änderungen am
+   Bild, z.B. durch das Bewegen eines Steins, werden zuerst in diesem Buffer vorgenommen. Die Methode transfer_bitmap
+   sendet dann den Inhalt des Buffers über SPI an die kaskadierten Anzeigemodule. Die Daten werden dabei zeilenweise an
+   die entsprechenden Register (DIGIT0 bis DIGIT7) der MAX7219-Chips gesendet. Bei der Initialisierung konfiguriert der
+   Treiber die Chips, indem er den Testmodus deaktiviert, die Helligkeit einstellt und den Scan-Limit so setzt, dass
+   alle 8 Zeilen angesteuert werden.
+   Die transfer_row-Methode zeigt, wie eine einzelne Bildzeile an alle kaskadierten Displays gesendet wird.
+   Der Opcode für die Zielzeile und die 8-Bit-Pixeldaten werden dabei zusammen via SPI übertragen.
+
+```rust
+// display/ma72xx.rs
+fn transfer_row(&mut self, row: u8) -> Result<(), E> {
+    assert!(row < 8);
+
+    // Opcode für die zu schreibende Zeile (Digit)
+    let opcode = op::DIGIT0 + row;
+
+    // Buffer für alle kaskadierten Displays vorbereiten
+    let mut buffer = Vec::with_capacity(self.displays * 2);
+    for display in (0..self.displays).rev() {
+        let data = self.bitmap[display * 8 + row as usize];
+        buffer.extend_from_slice(&[opcode, data]);
+    }
+
+    // Daten via SPI senden
+    self.spi.write(&buffer)
+}
+```
+
+2. Zustandsbasiertes Rendering\
+   Die gesamte Rendering-Logik wird durch den globalen GameState-Zustandsautomaten gesteuert. Die render-Funktion dient
+   als
+   Verteiler, der je nach aktuellem Spielzustand (StartMenu, InGame, GameOver) die passende, spezialisierte
+   Zeichenfunktion
+   aufruft.
+   Der match-Block in der render-Funktion ist das Herzstück des zustandsbasierten Renderings und delegiert
+   die Arbeit an die entsprechenden Unterfunktionen.
+
+```rust
+// display/render.rs
+pub fn render(game_state: &mut GameState, display: &mut impl Display) {
+    match game_state {
+        GameState::StartMenu(state) => render_start(state, display),
+        GameState::InGame(state) => render_in_game(state, display),
+        GameState::GameOver(score) => render_score(*score, display),
+    }
+}
+```
+
+3. Schrift- und Icon-Bitmaps\
+   Grafische Elemente wie Zahlen oder Buchstaben werden als statische Bitmaps direkt im Code gespeichert. Eine const fn
+   wie
+   digit_bitmap gibt für eine gegebene Ziffer ein Array aus 8 Bytes zurück. Jedes Byte repräsentiert eine Zeile auf der
+   8x8-Matrix, wobei jedes Bit einem Pixel entspricht. Die Verwendung von const fn stellt sicher, dass diese Daten zur
+   Kompilierzeit direkt in die Firmware eingebettet werden, was zur Laufzeit Speicher und Rechenleistung spart.
+   Die Bitmap für die Ziffer '1' ist als Array von 8 Bytes definiert. Jedes Bit im Byte steuert eine LED in
+   der entsprechenden Zeile.
+
+```rust
+// display/render.rs
+const fn digit_bitmap(digit: u32) -> [u8; 8] {
+    match digit {
+        // Bitmap für die Ziffer '1'
+        1 => [
+            0b00011000, //   **
+            0b00111000, //  ***
+            0b00011000, //   **
+            0b00011000, //   **
+            0b00011000, //   **
+            0b00011000, //   **
+            0b00111100, //  ****
+            0b00000000,
+        ],
+        // ... Bitmaps für andere Ziffern
+        _ => unreachable!(),
+    }
+}
+```
+
 ### Eingesetzte Tools und Sprachen
 
 Als Programmiersprache wurde Rust in der no_std-Umgebung (mit std-Unterstützung durch das esp-idf-Framework) verwendet.
