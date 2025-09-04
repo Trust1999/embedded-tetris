@@ -562,7 +562,18 @@ Firmware auf den ESP32-S3 und das Auslesen der seriellen Konsole wurden mit dem 
 
 ### Was getestet
 
+Die interne Spiellogik wurde mit Unit-Tests abgedeckt, um sicherzustellen, dass Kernfunktionen wie Zustandsverwaltung,
+Spiellogik und Highscore-Verarbeitung korrekt arbeiten.
+
+Für hardware-spezifische Komponenten (z. B. GPIO-Interrupts, WLAN-Access-Point, NVS-Speicher) wurden hingegen keine
+automatisierten Tests implementiert. Diese Funktionen wurden manuell auf dem ESP32 ausgetestet, da sie stark von der
+Hardware-Umgebung abhängen.
+
 ### Ergebnisse
+
+Alle implementierten Funktionen haben wie geplant funktioniert.  
+Die Spiellogik lief stabil, die Highscore-Speicherung und -Anzeige funktionierten zuverlässig, und auch die
+Interrupt-basierte Eingabeverarbeitung hat ohne Probleme geklappt.
 
 ## Fazit und Ausblick
 
