@@ -585,7 +585,7 @@ Herausfordernd waren dagegen folgende Punkte:
 
 * Entprellen der Taster: musste teilweise mit externen Pull-Up-Widerständen gelöst werden.
 * Einarbeitung in Rust: das dies für manche eine Ungewohnte Programmiersparche war.
-* ESP-IDF-HAL unter Windows: die Unterstützung war nicht durchgängig stabil und erforderte Workarounds.
+* ESP-IDF-Toolchain unter Windows: die Unterstützung war nicht durchgängig stabil und erforderte Workarounds.
 * LED-Matrix: es musste eigener Code für die Ansteuerung geschrieben werden, da keine passende Bibliothek verfügbar war.
 
 ### Erfüllung der Ziele
@@ -612,7 +612,18 @@ Alle Kernziele wurden erreicht:
 
 ### Aufbau des Repo
 
+* assets: Bilder für die Dokumentation
+* embedded: Code der Hardware anspricht
+* game:
+    * display, Code für display
+    * logic, Spiel logik
+
 ### Setup Anleitung
+
+1. Repository klonen
+2. Rust installieren (mit rustup)
+3. ESP-IDF-Toolchain einrichten (Linux/macOS empfohlen)
+4. Projekt bauen und auf ESP32 flashen mit 'cargo run'
 
 ### Beispiel zur Nutzung
 
