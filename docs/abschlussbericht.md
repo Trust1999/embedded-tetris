@@ -579,11 +579,34 @@ Interrupt-basierte Eingabeverarbeitung hat ohne Probleme geklappt.
 
 ### Was lief gut, was war schwierig?
 
+Gut funktioniert hat die Implementierung der Spiellogik sowie die Anbindung des Webservers und der
+Highscore-Speicherung.  
+Herausfordernd waren dagegen folgende Punkte:
+
+* Entprellen der Taster: musste teilweise mit externen Pull-Up-Widerständen gelöst werden.
+* Einarbeitung in Rust: das dies für manche eine Ungewohnte Programmiersparche war.
+* ESP-IDF-HAL unter Windows: die Unterstützung war nicht durchgängig stabil und erforderte Workarounds.
+* LED-Matrix: es musste eigener Code für die Ansteuerung geschrieben werden, da keine passende Bibliothek verfügbar war.
+
 ### Erfüllung der Ziele
+
+Alle Kernziele wurden erreicht:
+
+* Steuerung über Taster funktioniert.
+* Spiellogik läuft stabil.
+* Highscores können gespeichert und über einen Webserver angezeigt werden.
 
 ### Lessons Learnd
 
+* Frühzeitiges Testen der Hardware spart später viel Zeit.
+* Rust bietet durch Sicherheit und Typensystem Vorteile, erfordert aber anfangs eine steilere Lernkurve.
+* Klare Trennung zwischen Logik und Hardware-spezifischem Code erleichtert die Wartung.
+
 ### Ideen für Weiterentwicklung
+
+* Erweiterung der Spielmechanik (z. B. neue Modi oder Schwierigkeitsgrade).
+* Unterstützung für mehrere Spieler über Netzwerk.
+* Automatisierte Tests für Hardware-nahe Komponenten durch Simulationen oder Mocks.
 
 ## Resportery-Überblick
 
