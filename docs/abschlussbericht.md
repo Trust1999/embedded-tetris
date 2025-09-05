@@ -627,4 +627,26 @@ Alle Kernziele wurden erreicht:
 
 ### Beispiel zur Nutzung
 
+* Nach dem Flashen startet der ESP32 automatisch das Spiel.
+* Verbindung mit dem WLAN-AP ESP32-Tetris (Passwort: tetris123) herstellen.
+* Im Browser http://192.168.4.1/ öffnen, um Highscores anzuzeigen.
+* Steuerung erfolgt über die angeschlossenen Taster.
+
 ## Lizens und Danksagungen
+
+### Lizenz
+
+Dieses Projekt steht unter der MIT-Lizenz.  
+Das bedeutet konkret:
+
+* Der Quellcode darf frei genutzt, verändert und weitergegeben werden.
+* Auch kommerzielle Nutzung ist erlaubt.
+* Es gibt keine Gewährleistung oder Haftung durch die Autoren.
+
+### Danksagungen
+
+Besonderer Dank gilt:
+
+* der Rust-Community für hilfreiche Crates, Dokumentation und Unterstützung,
+* den Entwicklern von ESP-IDF und esp-idf-hal,
+* allen, die beim Testen und Debuggen geholfen haben.  
