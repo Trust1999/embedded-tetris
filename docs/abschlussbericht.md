@@ -160,7 +160,9 @@ Nicht-Funktionale Anforderungen:
 
 ![Schaltplan](../assets/Schaltplan.png)
 
-#### Klassendiagramm
+#### Sequenzdiagramm
+
+![Sequenzdiagramm](../assets/Sequenzdiagramm_Spielablauf.png)
 
 ## Architektur und Umsetzung
 
@@ -632,7 +634,7 @@ Alle Kernziele wurden erreicht:
 * Im Browser http://192.168.4.1/ öffnen, um Highscores anzuzeigen.
 * Steuerung erfolgt über die angeschlossenen Taster.
 
-## Lizens und Danksagungen
+## Lizenz und Danksagungen
 
 ### Lizenz
 
