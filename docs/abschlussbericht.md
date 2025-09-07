@@ -160,6 +160,10 @@ Nicht-Funktionale Anforderungen:
 
 ![Schaltplan](../assets/Schaltplan.png)
 
+#### Objektdiagramm
+
+![Objektdiagramm](../assets/Objektdiagramm.png)
+
 #### Sequenzdiagramm
 
 ![Sequenzdiagramm](../assets/Sequenzdiagramm_Spielablauf.png)
