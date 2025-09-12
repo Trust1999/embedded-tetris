@@ -581,6 +581,18 @@ Alle implementierten Funktionen haben wie geplant funktioniert.
 Die Spiellogik lief stabil, die Highscore-Speicherung und -Anzeige funktionierten zuverlässig, und auch die
 Interrupt-basierte Eingabeverarbeitung hat ohne Probleme geklappt.
 
+#### Webseite
+
+![Website](../assets/website.jpg)
+
+#### Finaler Aufbau
+
+![Aufbau](../assets/Aufbau.jpg)
+
+#### Funktion
+
+[Video](../assets/test.mp4)
+
 ## Fazit und Ausblick
 
 ### Was lief gut, was war schwierig?
