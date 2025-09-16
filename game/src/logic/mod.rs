@@ -157,11 +157,11 @@ impl InGameState {
 }
 
 pub struct Blocks {
-    data: [u8; DISPLAY_HEIGHT as usize],
+    pub data: [u8; DISPLAY_HEIGHT as usize],
 }
 
 impl Blocks {
-    pub(crate) fn get(&self, x: i16, y: i16) -> bool {
+    pub fn get(&self, x: i16, y: i16) -> bool {
         if x < 0 || x >= DISPLAY_WIDTH as i16 {
             return false;
         }
@@ -173,7 +173,7 @@ impl Blocks {
         self.data[y as usize] & mask != 0x00
     }
 
-    fn set(&mut self, x: i16, y: i16) {
+    pub fn set(&mut self, x: i16, y: i16) {
         if x < 0 || x >= DISPLAY_WIDTH as i16 || y < 0 || y >= DISPLAY_HEIGHT as i16 {
             return;
         }
@@ -188,14 +188,14 @@ impl Blocks {
             .any(|(x, y)| self.get(wrap_x(x) as i16, y as i16))
     }
 
-    fn place_piece(&mut self, piece: &Piece) {
+    pub fn place_piece(&mut self, piece: &Piece) {
         for (x, y) in piece.block_positions() {
             self.set(wrap_x(x) as i16, y as i16);
         }
     }
 
     /// Returns how many rows were removed
-    fn remove_full_rows(&mut self) -> u32 {
+    pub fn remove_full_rows(&mut self) -> u32 {
         let mut removed = 0;
         let height = self.data.len();
 

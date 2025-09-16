@@ -1,7 +1,7 @@
 use rand::Rng;
 
 #[derive(Clone, Copy)]
-enum PieceKind {
+pub enum PieceKind {
     // ● ●
     // ● ●
     O,
@@ -86,10 +86,10 @@ impl PieceKind {
 
 #[derive(Clone)]
 pub struct Piece {
-    x: i16,
-    y: i16,
+    pub x: i16,
+    pub y: i16,
     kind: PieceKind,
-    rotation: Rotation,
+    pub rotation: Rotation,
 }
 
 impl Piece {
@@ -109,7 +109,7 @@ impl Piece {
         BASE_VARIANTS[variant_index].clone()
     }
 
-    const fn new(x: i16, y: i16, kind: PieceKind) -> Self {
+    pub const fn new(x: i16, y: i16, kind: PieceKind) -> Self {
         Self {
             x,
             y,
@@ -184,7 +184,7 @@ impl Rotation {
         }
     }
 
-    const fn to_u16(self) -> u16 {
+    pub const fn to_u16(self) -> u16 {
         match self {
             Rotation::Deg0 => 0,
             Rotation::Deg90 => 90,
