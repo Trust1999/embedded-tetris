@@ -569,7 +569,156 @@ Firmware auf den ESP32-S3 und das Auslesen der seriellen Konsole wurden mit dem 
 ### Was getestet
 
 Die interne Spiellogik wurde mit Unit-Tests abgedeckt, um sicherzustellen, dass Kernfunktionen wie Zustandsverwaltung,
-Spiellogik und Highscore-Verarbeitung korrekt arbeiten.
+Spiellogik und Highscore-Verarbeitung korrekt arbeiten. Die Tests befinden sich Aufgrund der Funktionsweise von Rust in
+game/tests/dispaly.rs und game/tests/logic.
+
+Die Datei game/tests/dispaly.rs enthält zwei Test-Module (text_display_tests und render_logic_tests).
+
+#### 1. text_display_tests
+
+Diese Tests prüfen die TextDisplay-Struktur, also einen Bildschirmpuffer für 8 Pixel breite Spalten und DISPLAY_HEIGHT
+Zeilen.
+
+`test_new_is_empty`
+Prüft, dass ein frisch erzeugtes TextDisplay leer ist.
+Wie:
+
+1. TextDisplay::new() erstellt ein neues Display.
+2. Für jede Koordinate x = 0..8 und y = 0..DISPLAY_HEIGHT wird mit assert!(!display.get_pixel(x,y))
+   kontrolliert, dass kein Pixel gesetzt ist.
+
+`test_set_and_get_pixel`
+Testet das Setzen und Abfragen einzelner Pixel.
+Wie:
+
+1. Neues Display erstellen.
+2. display.set_pixel(3,5,true) setzt das Pixel (3,5).
+3. assert!(display.get_pixel(3,5)) prüft, dass es leuchtet.
+4. Pixel wieder auf false setzen und erneut prüfen.
+
+`test_fill`
+Testet das Füllen des gesamten Displays mit true oder false.
+Wie:
+
+1. display.fill(true) – alle Pixel an.
+2. Stichproben bei (0,0) und (7,31) müssen true sein.
+3. Danach fill(false) und dieselben Stellen müssen false sein.
+
+---
+
+#### 2. render_logic_tests
+
+Diese Tests prüfen die Render-Logik und die Funktion wrap_x.
+
+`test_wrap_x_logic`
+Prüft die X-Koordinaten-Umbruchfunktion wrap_x.
+Wie: Erwartungswerte werden mit assert_eq! verglichen:
+
+- wrap_x(0) → 0
+- wrap_x(7) → 7
+- wrap_x(8) → 0 (rechts herum)
+- wrap_x(-1) → 7 (links herum)
+- wrap_x(-9) → 7 (mehrfach links)
+
+`test_render_score`
+Testet, dass der Render-Code im **GameOver-Zustand** den Score anzeigt.
+Wie:
+
+1. Neues Display, Score = 1234.
+2. render(&mut game_over_state, &mut display) aufrufen.
+3. Danach kontrollieren, dass bestimmte Pixel (3,0), (2,8), (2,16), (4,24) gesetzt wurden – vermutlich Teile der
+   Zahlendarstellung.
+
+`test_render_in_game_state`
+Testet das Rendern während eines laufenden Spiels.
+Wie
+
+1. Leere Blöcke (Blocks), aktuelle Figur T an (3,10), nächste Figur O an (2,2).
+2. render aufrufen.
+3. Danach prüfen, dass Pixel für Spielfeld, aktuelle und nächste Figur an den richtigen Positionen leuchten, z. B. (
+   3,10) für das T-Stück.
+
+---
+
+Die Datei game/tests/logic enthält einzelne Rust-Tests für Spiellogik, Spielsteine (Pieces), Spielfeld (Blocks) und
+Spielzustände (GameState).
+
+---
+
+#### 1. Tests für Piece (Spielstein)
+
+`test_piece_rotation`
+Überprüft die Rotationslogik eines Spielsteins.
+Wie:
+
+1. Neues T-Stück (PieceKind::T) an (0,0).
+2. Anfangsrotation muss 0 Grad sein.
+3. Nach rotate(Rotation::Deg90) muss Rotation 90 Grad sein.
+4. Nach rotate(Rotation::Deg270) wieder 0 Grad (90 + 270 = 360).
+
+`test_piece_movement`
+Testet Verschiebung und gezieltes Positionieren eines Steins.
+Wie:
+
+1. Neues O-Stück bei (3,3).
+2. move_by(1,-1) verschiebt nach (4,2).
+3. move_to(0,0) setzt die Koordinaten direkt auf (0,0).
+
+`test_block_positions_for_t_shape`
+Prüft, ob `block_positions()` die korrekten Koordinaten der T-Form liefert, auch nach Drehung.
+Wie:
+
+1. T-Stück bei (3,2), erwartete Positionen für Rotation 0° vergleichen.
+2. Dann 90° drehen und erneut erwartete Koordinaten prüfen.
+
+---
+
+#### 2. Tests für Blocks (Spielfeld)
+
+`test_blocks_set_and_get`
+Testet das Setzen und Abfragen einzelner Felder.
+Wie:
+
+1. Neues leeres Blocks.
+2. set(2,5) setzt das Feld (2,5).
+3. Prüfen, dass get(2,5) true und get(0,0) false ist.
+
+`test_blocks_place_piece`
+Prüft, ob ein ganzer Spielstein korrekt auf dem Spielfeld platziert wird.
+Wie:
+
+1. Leeres Blocks, O-Stück bei (0,0).
+2. place_piece(&piece) aufrufen.
+3. Alle vier Felder des O-Stücks müssen auf true stehen: (0,0), (1,0), (0,1), (1,1).
+
+`test_remove_one_full_row`
+Testet das Entfernen vollständiger Reihen.
+Wie:
+
+1. Unterste Zeile (Index 31) auf 0xff setzen (alle Felder belegt).
+2. Vorletzte Zeile (30) mit Teilbelegung.
+3. remove_full_rows() aufrufen.
+4. Erwartung:
+
+- Rückgabewert = 1 (eine Reihe entfernt).
+- Neue unterste Zeile enthält vorherige Zeile 30 (0b00011000).
+- Zeile 0 ist leer (0x00).
+
+---
+
+#### 3. Test für GameState
+
+`test_gamestate_start_to_ingame`
+Überprüft den Übergang vom Startmenü ins eigentliche Spiel.
+Wie:
+
+1. GameState::StartMenu mit Phase Text anlegen.
+2. update(Some(ButtonAction::Rotate), …) ausführen.
+3. Sicherstellen, dass der neue Zustand GameState::InGame(_) ist.
+
+---
+
+![test_logic](../assets/test_logic.png)
 
 Für hardware-spezifische Komponenten (z. B. GPIO-Interrupts, WLAN-Access-Point, NVS-Speicher) wurden hingegen keine
 automatisierten Tests implementiert. Diese Funktionen wurden manuell auf dem ESP32 ausgetestet, da sie stark von der
