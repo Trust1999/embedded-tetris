@@ -25,11 +25,11 @@ pub enum StartMenuPhase {
 }
 
 pub struct InGameState {
-    pub(crate) blocks: Blocks,
-    score: u32,
-    pub(crate) current_piece: Piece,
-    pub(crate) next_piece: Option<Piece>,
-    time_last_move: Instant,
+    pub blocks: Blocks,
+    pub score: u32,
+    pub current_piece: Piece,
+    pub next_piece: Option<Piece>,
+    pub time_last_move: Instant,
 }
 
 impl GameState {
