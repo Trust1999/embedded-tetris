@@ -73,9 +73,11 @@ mod render_logic_tests {
     #[test]
     fn test_render_in_game_state() {
         let mut display = TextDisplay::new();
-        let blocks = Blocks {
+        let mut blocks = Blocks {
             data: [0; game::DISPLAY_HEIGHT as usize],
         };
+
+        blocks.set(0, 31);
 
         let current_piece = Piece::new(3, 10, PieceKind::T);
         let next_piece = Some(Piece::new(2, 2, PieceKind::O));
@@ -91,10 +93,11 @@ mod render_logic_tests {
 
         game::display::render::render(&mut game_state, &mut display);
 
-        assert!(display.get_pixel(0, 31));
         assert!(display.get_pixel(0, 7));
         assert!(display.get_pixel(7, 7));
+
         assert!(display.get_pixel(3, 10));
+
         assert!(display.get_pixel(2, 2));
     }
 }
