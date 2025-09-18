@@ -1,9 +1,3 @@
-1. License
-2. Test
-3. readme fertigstellen
-4. PowerPoint
-5. Dokumentation
-
 # Embedded Tetris 🎮
 
 Ein Tetris-Klon für den **ESP32-S3**, programmiert in **Rust**.  
