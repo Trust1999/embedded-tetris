@@ -638,6 +638,8 @@ Wie
 3. Danach prüfen, dass Pixel für Spielfeld, aktuelle und nächste Figur an den richtigen Positionen leuchten, z. B. (
    3,10) für das T-Stück.
 
+![test_display](../assets/test_display.png)
+
 ---
 
 Die Datei game/tests/logic enthält einzelne Rust-Tests für Spiellogik, Spielsteine (Pieces), Spielfeld (Blocks) und
