@@ -28,8 +28,7 @@ Highscores werden im Flash gespeichert und können über einen integrierten **We
 
 1. Repository klonen
 2. rustup intsallieren
-3. ESP-IDF-Toolchain einrichten (Linux/macOS empfohlen)
-
+3. ESP-IDF-Toolchain einrichten (Linux/macOS empfohlen)\
    siehe https://github.com/esp-rs/espup (Anleitung und Download)
 4. Projekt bauen und flashen
 5. cargo run
