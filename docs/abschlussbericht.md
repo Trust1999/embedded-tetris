@@ -792,6 +792,8 @@ Alle Kernziele wurden erreicht:
 1. Repository klonen
 2. Rust installieren (mit rustup)
 3. ESP-IDF-Toolchain einrichten (Linux/macOS empfohlen)
+
+   siehe https://github.com/esp-rs/espup (Anleitung und Download)
 4. Projekt bauen und auf ESP32 flashen mit 'cargo run'
 
 ### Beispiel zur Nutzung
