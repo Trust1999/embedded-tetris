@@ -6,6 +6,13 @@ Highscores werden im Flash gespeichert und können über einen integrierten **We
 
 ---
 
+## 👥 Autoren
+
+**Nika Sommer**  
+**Anton Unger**
+
+___
+
 ## Features
 
 - Klassisches Tetris mit **Screen-Wrapping** (Blöcke verlassen das Spielfeld und erscheinen auf der anderen Seite).
